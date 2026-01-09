@@ -1,0 +1,508 @@
+---
+title: Integration
+description: Integrating Lux Accel with the Lux node, EVM precompiles, and other systems
+---
+
+# Integration
+
+This guide covers integrating Lux Accel with the Lux blockchain node, EVM precompiles, and other systems.
+
+## Node Integration
+
+### Consensus Acceleration
+
+The Lux node uses accel for consensus-critical operations:
+
+```go
+// In luxd/snow/consensus/engine.go
+package consensus
+
+import (
+    "github.com/luxfi/accel"
+    "github.com/luxfi/node/ids"
+)
+
+type AcceleratedEngine struct {
+    session *accel.Session
+}
+
+func NewAcceleratedEngine() (*AcceleratedEngine, error) {
+    if err := accel.Init(); err != nil {
+        return nil, err
+    }
+
+    session, err := accel.NewSession()
+    if err != nil {
+        return nil, err
+    }
+
+    return &AcceleratedEngine{session: session}, nil
+}
+
+// VerifyBlock verifies block signatures in batch
+func (e *AcceleratedEngine) VerifyBlock(block *Block) error {
+    crypto := e.session.Crypto()
+
+    // Extract all signatures from transactions
+    sigs := extractSignatures(block.Transactions)
+
+    // Batch verify BLS signatures
+    results, _ := accel.NewTensor[uint8](e.session, []int{len(sigs)})
+    if err := crypto.BLSVerifyBatch(
+        msgs.Untyped(),
+        sigs.Untyped(),
+        pks.Untyped(),
+        results.Untyped(),
+    ); err != nil {
+        return err
+    }
+
+    e.session.Sync()
+
+    // Check all signatures are valid
+    valid, _ := results.ToSlice()
+    for i, v := range valid {
+        if v != 1 {
+            return fmt.Errorf("invalid signature at index %d", i)
+        }
+    }
+
+    return nil
+}
+```
+
+### Transaction Pool Acceleration
+
+```go
+// In txpool/txpool.go
+type AcceleratedTxPool struct {
+    session *accel.Session
+    pending chan *Transaction
+}
+
+func (p *AcceleratedTxPool) VerifyBatch(txs []*Transaction) []bool {
+    // Batch verify ECDSA signatures
+    n := len(txs)
+    messages, _ := accel.NewTensor[uint8](p.session, []int{n, 32})
+    signatures, _ := accel.NewTensor[uint8](p.session, []int{n, 64})
+    pubkeys, _ := accel.NewTensor[uint8](p.session, []int{n, 33})
+    results, _ := accel.NewTensor[uint8](p.session, []int{n})
+
+    // Fill tensors with transaction data
+    // ...
+
+    p.session.Crypto().ECDSAVerifyBatch(
+        messages.Untyped(),
+        signatures.Untyped(),
+        pubkeys.Untyped(),
+        results.Untyped(),
+    )
+
+    p.session.Sync()
+
+    valid, _ := results.ToSlice()
+    validBool := make([]bool, n)
+    for i, v := range valid {
+        validBool[i] = v == 1
+    }
+    return validBool
+}
+```
+
+## EVM Precompiles
+
+### Precompile Registration
+
+Register accel operations as EVM precompiles:
+
+```go
+// In vms/evm/precompile/accel.go
+package precompile
+
+import (
+    "github.com/luxfi/accel"
+)
+
+var (
+    // Precompile addresses
+    SHA256Precompile     = common.HexToAddress("0x0000000000000000000000000000000000000100")
+    BLSVerifyPrecompile  = common.HexToAddress("0x0000000000000000000000000000000000000101")
+    KyberEncapsPrecompile = common.HexToAddress("0x0000000000000000000000000000000000000102")
+)
+
+type AccelPrecompiles struct {
+    session *accel.Session
+}
+
+func (p *AccelPrecompiles) RequiredGas(input []byte) uint64 {
+    // Gas cost based on input size
+    return uint64(len(input)) * 3 + 600
+}
+
+func (p *AccelPrecompiles) Run(input []byte) ([]byte, error) {
+    // Parse input
+    operation := input[0]
+    data := input[1:]
+
+    switch operation {
+    case 0x01: // SHA256
+        return p.sha256(data)
+    case 0x02: // Keccak256
+        return p.keccak256(data)
+    case 0x03: // BLS Verify
+        return p.blsVerify(data)
+    case 0x04: // Kyber Encaps
+        return p.kyberEncaps(data)
+    default:
+        return nil, ErrUnknownOperation
+    }
+}
+
+func (p *AccelPrecompiles) sha256(data []byte) ([]byte, error) {
+    input, _ := accel.NewTensorWithData[uint8](p.session, []int{1, len(data)}, data)
+    output, _ := accel.NewTensor[uint8](p.session, []int{1, 32})
+
+    if err := p.session.Crypto().SHA256(input.Untyped(), output.Untyped()); err != nil {
+        return nil, err
+    }
+
+    p.session.Sync()
+    result, _ := output.ToSlice()
+    return result, nil
+}
+```
+
+### Solidity Interface
+
+```solidity
+// contracts/IAccel.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+interface IAccel {
+    /// @notice Compute SHA-256 hash
+    /// @param data Input data
+    /// @return hash 32-byte hash
+    function sha256(bytes calldata data) external view returns (bytes32 hash);
+
+    /// @notice Verify BLS signature
+    /// @param message Message that was signed
+    /// @param signature 96-byte BLS signature
+    /// @param pubkey 48-byte BLS public key
+    /// @return valid True if signature is valid
+    function blsVerify(
+        bytes calldata message,
+        bytes calldata signature,
+        bytes calldata pubkey
+    ) external view returns (bool valid);
+
+    /// @notice Kyber key encapsulation
+    /// @param publicKey 1184-byte Kyber public key
+    /// @return ciphertext 1088-byte ciphertext
+    /// @return sharedSecret 32-byte shared secret
+    function kyberEncaps(bytes calldata publicKey)
+        external view
+        returns (bytes memory ciphertext, bytes32 sharedSecret);
+
+    /// @notice Dilithium signature verification
+    /// @param message Message that was signed
+    /// @param signature 3293-byte Dilithium signature
+    /// @param pubkey 1952-byte Dilithium public key
+    /// @return valid True if signature is valid
+    function dilithiumVerify(
+        bytes calldata message,
+        bytes calldata signature,
+        bytes calldata pubkey
+    ) external view returns (bool valid);
+}
+```
+
+### Using Precompiles
+
+```solidity
+// contracts/QuantumSafe.sol
+pragma solidity ^0.8.0;
+
+import "./IAccel.sol";
+
+contract QuantumSafeVault {
+    IAccel constant accel = IAccel(0x0000000000000000000000000000000000000100);
+
+    mapping(bytes32 => bytes) public kyberPubkeys;
+    mapping(bytes32 => bytes) public dilithiumPubkeys;
+
+    function registerQuantumKeys(
+        bytes calldata kyberPubkey,
+        bytes calldata dilithiumPubkey
+    ) external {
+        bytes32 id = keccak256(abi.encodePacked(msg.sender));
+        kyberPubkeys[id] = kyberPubkey;
+        dilithiumPubkeys[id] = dilithiumPubkey;
+    }
+
+    function verifyQuantumSignature(
+        bytes calldata message,
+        bytes calldata signature
+    ) external view returns (bool) {
+        bytes32 id = keccak256(abi.encodePacked(msg.sender));
+        bytes memory pubkey = dilithiumPubkeys[id];
+        require(pubkey.length > 0, "No quantum key registered");
+
+        return accel.dilithiumVerify(message, signature, pubkey);
+    }
+
+    function encapsulateKey(address recipient)
+        external view
+        returns (bytes memory ciphertext, bytes32 sharedSecret)
+    {
+        bytes32 id = keccak256(abi.encodePacked(recipient));
+        bytes memory pubkey = kyberPubkeys[id];
+        require(pubkey.length > 0, "No quantum key registered");
+
+        return accel.kyberEncaps(pubkey);
+    }
+}
+```
+
+## C Library Integration
+
+### CGO Bindings
+
+The Go package uses CGO to call the C library:
+
+```go
+// internal/capi/capi.go
+package capi
+
+/*
+#cgo CFLAGS: -I${SRCDIR}/../../include
+#cgo LDFLAGS: -L${SRCDIR}/../../lib -llux_accel -llux_gpu -llux_crypto
+
+#include <lux/accel/accel.h>
+*/
+import "C"
+
+func Init() error {
+    result := C.lux_init()
+    if result != 0 {
+        return fmt.Errorf("lux_init failed: %d", result)
+    }
+    return nil
+}
+
+func Shutdown() {
+    C.lux_shutdown()
+}
+
+func CreateSession(backend, device int) (C.lux_session_t, error) {
+    var session C.lux_session_t
+    result := C.lux_session_create(C.int(backend), C.int(device), &session)
+    if result != 0 {
+        return nil, fmt.Errorf("session creation failed: %d", result)
+    }
+    return session, nil
+}
+```
+
+### Build Configuration
+
+The package requires the C++ libraries to be built:
+
+```bash
+# Build C++ libraries
+cd /Users/z/work/luxcpp
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j8
+make install
+
+# Set library paths
+export CGO_CFLAGS="-I/Users/z/work/luxcpp/install/include"
+export CGO_LDFLAGS="-L/Users/z/work/luxcpp/install/lib"
+export DYLD_LIBRARY_PATH="/Users/z/work/luxcpp/install/lib:$DYLD_LIBRARY_PATH"
+
+# Build Go package
+cd /Users/z/work/lux/accel
+go build ./...
+go test ./...
+```
+
+## WebAssembly Integration
+
+### Building for WASM
+
+```bash
+# Build with WASM support (WebGPU backend only)
+GOOS=js GOARCH=wasm go build -o accel.wasm ./cmd/wasm
+```
+
+### JavaScript API
+
+```javascript
+// accel.js
+const go = new Go();
+WebAssembly.instantiateStreaming(fetch("accel.wasm"), go.importObject).then((result) => {
+    go.run(result.instance);
+});
+
+// Use the exported functions
+async function verifySignatures(messages, signatures, pubkeys) {
+    const result = await accel.batchVerifyECDSA(messages, signatures, pubkeys);
+    return result;
+}
+
+async function computeMerkleRoot(leaves) {
+    const root = await accel.merkleRoot(leaves);
+    return root;
+}
+```
+
+## Performance Optimization
+
+### Batch Processing
+
+Always batch operations for maximum throughput:
+
+```go
+// BAD: Individual operations
+for _, tx := range transactions {
+    session.Crypto().SHA256(tx.Hash(), result)
+}
+
+// GOOD: Batched operations
+hashes := collectHashes(transactions)
+input, _ := accel.NewTensorWithData[uint8](session, []int{len(hashes), 32}, hashes)
+output, _ := accel.NewTensor[uint8](session, []int{len(hashes), 32})
+session.Crypto().SHA256(input.Untyped(), output.Untyped())
+session.Sync()
+```
+
+### Memory Pooling
+
+Reuse tensors when processing streams:
+
+```go
+type TensorPool struct {
+    session *accel.Session
+    pool    sync.Pool
+}
+
+func NewTensorPool(session *accel.Session, shape []int) *TensorPool {
+    return &TensorPool{
+        session: session,
+        pool: sync.Pool{
+            New: func() interface{} {
+                t, _ := accel.NewTensor[float32](session, shape)
+                return t
+            },
+        },
+    }
+}
+
+func (p *TensorPool) Get() *accel.Tensor[float32] {
+    return p.pool.Get().(*accel.Tensor[float32])
+}
+
+func (p *TensorPool) Put(t *accel.Tensor[float32]) {
+    p.pool.Put(t)
+}
+```
+
+### Pipeline Execution
+
+Overlap compute and data transfer:
+
+```go
+// Enable async mode
+session, _ := accel.NewSession(accel.WithAsync(true))
+
+// Pipeline: while GPU processes batch N, prepare batch N+1
+for i := 0; i < numBatches; i++ {
+    // Prepare next batch on CPU (parallel with GPU)
+    go prepareBatch(i + 1)
+
+    // Execute on GPU
+    session.Crypto().BLSVerifyBatch(msgs, sigs, pks, results)
+}
+
+session.Sync()
+```
+
+## Error Handling
+
+### Checking for GPU Support
+
+```go
+func initAccel() (*accel.Session, error) {
+    if err := accel.Init(); err != nil {
+        return nil, fmt.Errorf("accel init: %w", err)
+    }
+
+    if !accel.Available() {
+        log.Println("No GPU available, falling back to CPU")
+        return nil, accel.ErrNotAvailable
+    }
+
+    session, err := accel.NewSession()
+    if err != nil {
+        return nil, fmt.Errorf("session creation: %w", err)
+    }
+
+    return session, nil
+}
+```
+
+### Graceful Degradation
+
+```go
+type CryptoOps interface {
+    SHA256(input, output []byte) error
+}
+
+type gpuCrypto struct {
+    session *accel.Session
+}
+
+type cpuCrypto struct{}
+
+func NewCryptoOps() CryptoOps {
+    session, err := initAccel()
+    if err != nil {
+        log.Printf("Using CPU crypto: %v", err)
+        return &cpuCrypto{}
+    }
+    return &gpuCrypto{session: session}
+}
+```
+
+## Monitoring
+
+### Metrics
+
+```go
+import "github.com/prometheus/client_golang/prometheus"
+
+var (
+    gpuOpsTotal = prometheus.NewCounterVec(
+        prometheus.CounterOpts{
+            Name: "accel_operations_total",
+            Help: "Total GPU operations",
+        },
+        []string{"operation", "backend"},
+    )
+
+    gpuOpsDuration = prometheus.NewHistogramVec(
+        prometheus.HistogramOpts{
+            Name:    "accel_operation_duration_seconds",
+            Help:    "GPU operation duration",
+            Buckets: prometheus.ExponentialBuckets(0.0001, 2, 15),
+        },
+        []string{"operation"},
+    )
+)
+
+func recordOp(op string, start time.Time) {
+    gpuOpsTotal.WithLabelValues(op, session.Backend().String()).Inc()
+    gpuOpsDuration.WithLabelValues(op).Observe(time.Since(start).Seconds())
+}
+```

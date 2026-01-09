@@ -1,0 +1,541 @@
+---
+title: API Reference
+description: Complete API reference for the Lux Accel package
+---
+
+# API Reference
+
+Complete API documentation for the `github.com/luxfi/accel` package.
+
+## Package Functions
+
+### Init
+
+```go
+func Init() error
+```
+
+Initializes the accel library. Must be called before any other operations. Safe to call multiple times; subsequent calls are no-ops.
+
+```go
+if err := accel.Init(); err != nil {
+    log.Fatal("Failed to initialize accel:", err)
+}
+```
+
+### Shutdown
+
+```go
+func Shutdown()
+```
+
+Releases all library resources. Call when done using the library.
+
+```go
+defer accel.Shutdown()
+```
+
+### Available
+
+```go
+func Available() bool
+```
+
+Returns true if at least one GPU backend is available.
+
+### Backends
+
+```go
+func Backends() []BackendType
+```
+
+Returns a list of available backend types.
+
+### Devices
+
+```go
+func Devices() []DeviceInfo
+```
+
+Returns information about all available devices across all backends.
+
+### DeviceCount
+
+```go
+func DeviceCount() int
+```
+
+Returns the total number of available devices.
+
+### NewSession
+
+```go
+func NewSession(opts ...SessionOption) (*Session, error)
+```
+
+Creates a new acceleration session with auto-detected best backend.
+
+```go
+session, err := accel.NewSession()
+session, err := accel.NewSession(accel.WithAsync(true))
+```
+
+### NewSessionWithBackend
+
+```go
+func NewSessionWithBackend(backend BackendType, opts ...SessionOption) (*Session, error)
+```
+
+Creates a session using a specific backend.
+
+```go
+session, err := accel.NewSessionWithBackend(accel.BackendMetal)
+```
+
+### NewSessionWithDevice
+
+```go
+func NewSessionWithDevice(backend BackendType, deviceIndex int, opts ...SessionOption) (*Session, error)
+```
+
+Creates a session using a specific device.
+
+```go
+session, err := accel.NewSessionWithDevice(accel.BackendCUDA, 0)
+```
+
+---
+
+## Session
+
+The Session manages a GPU acceleration context. All tensor operations must use tensors created from the same session. Session is safe for concurrent use.
+
+### Methods
+
+#### DeviceInfo
+
+```go
+func (s *Session) DeviceInfo() DeviceInfo
+```
+
+Returns information about the session's device.
+
+#### Backend
+
+```go
+func (s *Session) Backend() BackendType
+```
+
+Returns the backend type for this session.
+
+#### Sync
+
+```go
+func (s *Session) Sync() error
+```
+
+Waits for all pending operations to complete.
+
+#### SyncContext
+
+```go
+func (s *Session) SyncContext(ctx context.Context) error
+```
+
+Waits for pending operations with context cancellation support.
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+if err := session.SyncContext(ctx); err != nil {
+    log.Println("Operation timed out or cancelled")
+}
+```
+
+#### Close
+
+```go
+func (s *Session) Close() error
+```
+
+Releases all session resources.
+
+#### IsClosed
+
+```go
+func (s *Session) IsClosed() bool
+```
+
+Returns true if the session has been closed.
+
+### Operation Interfaces
+
+#### ML
+
+```go
+func (s *Session) ML() MLOps
+```
+
+Returns the ML operations interface.
+
+#### Crypto
+
+```go
+func (s *Session) Crypto() CryptoOps
+```
+
+Returns the cryptographic operations interface.
+
+#### ZK
+
+```go
+func (s *Session) ZK() ZKOps
+```
+
+Returns the zero-knowledge proof operations interface.
+
+#### Lattice
+
+```go
+func (s *Session) Lattice() LatticeOps
+```
+
+Returns the lattice cryptography operations interface.
+
+#### FHE
+
+```go
+func (s *Session) FHE() FHEOps
+```
+
+Returns the fully homomorphic encryption operations interface.
+
+#### DEX
+
+```go
+func (s *Session) DEX() DEXOps
+```
+
+Returns the decentralized exchange operations interface.
+
+---
+
+## SessionOption
+
+Options for configuring session creation.
+
+### WithBackend
+
+```go
+func WithBackend(b BackendType) SessionOption
+```
+
+Specifies the backend to use.
+
+### WithDevice
+
+```go
+func WithDevice(index int) SessionOption
+```
+
+Specifies the device index within the backend.
+
+### WithAsync
+
+```go
+func WithAsync(async bool) SessionOption
+```
+
+Enables asynchronous operation mode.
+
+---
+
+## Tensor
+
+Generic tensor type representing a multi-dimensional array on GPU memory. Not safe for concurrent modification but safe for concurrent reads.
+
+### NewTensor
+
+```go
+func NewTensor[T TensorElement](s *Session, shape []int) (*Tensor[T], error)
+```
+
+Creates a new tensor with the given shape.
+
+```go
+// Create a 1024x1024 float32 tensor
+tensor, err := accel.NewTensor[float32](session, []int{1024, 1024})
+if err != nil {
+    log.Fatal(err)
+}
+defer tensor.Close()
+```
+
+### NewTensorWithData
+
+```go
+func NewTensorWithData[T TensorElement](s *Session, shape []int, data []T) (*Tensor[T], error)
+```
+
+Creates a tensor initialized with data from a slice.
+
+```go
+data := []float32{1.0, 2.0, 3.0, 4.0}
+tensor, err := accel.NewTensorWithData[float32](session, []int{2, 2}, data)
+```
+
+### Methods
+
+#### Shape
+
+```go
+func (t *Tensor[T]) Shape() []int
+```
+
+Returns a copy of the tensor shape.
+
+#### NDim
+
+```go
+func (t *Tensor[T]) NDim() int
+```
+
+Returns the number of dimensions.
+
+#### NumEl
+
+```go
+func (t *Tensor[T]) NumEl() int
+```
+
+Returns the total number of elements.
+
+#### DType
+
+```go
+func (t *Tensor[T]) DType() DType
+```
+
+Returns the element data type.
+
+#### Bytes
+
+```go
+func (t *Tensor[T]) Bytes() int
+```
+
+Returns the total byte size.
+
+#### ToSlice
+
+```go
+func (t *Tensor[T]) ToSlice() ([]T, error)
+```
+
+Copies tensor data to a Go slice.
+
+```go
+result, err := tensor.ToSlice()
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println("First element:", result[0])
+```
+
+#### FromSlice
+
+```go
+func (t *Tensor[T]) FromSlice(src []T) error
+```
+
+Copies data from a Go slice to the tensor.
+
+```go
+newData := []float32{5.0, 6.0, 7.0, 8.0}
+if err := tensor.FromSlice(newData); err != nil {
+    log.Fatal(err)
+}
+```
+
+#### Close
+
+```go
+func (t *Tensor[T]) Close()
+```
+
+Releases tensor resources.
+
+#### Untyped
+
+```go
+func (t *Tensor[T]) Untyped() *UntypedTensor
+```
+
+Returns an untyped view of the tensor for passing to ops.
+
+---
+
+## UntypedTensor
+
+Type-erased tensor for dynamic typing scenarios and internal operations.
+
+### Methods
+
+Same as Tensor: `Shape()`, `NDim()`, `NumEl()`, `DType()`, `Bytes()`.
+
+#### Handle
+
+```go
+func (t *UntypedTensor) Handle() uintptr
+```
+
+Returns the raw tensor handle for CGO operations.
+
+---
+
+## BackendType
+
+Identifies a GPU compute backend.
+
+```go
+type BackendType int
+
+const (
+    BackendAuto   BackendType = iota  // Auto-select best available
+    BackendMetal                       // Apple Metal
+    BackendWebGPU                      // WebGPU via Dawn
+    BackendCUDA                        // NVIDIA CUDA
+)
+```
+
+### String
+
+```go
+func (b BackendType) String() string
+```
+
+Returns the backend name: "auto", "metal", "webgpu", "cuda".
+
+---
+
+## DeviceInfo
+
+Contains information about a compute device.
+
+```go
+type DeviceInfo struct {
+    Backend          BackendType
+    Index            int
+    Name             string
+    Vendor           string
+    IsDiscrete       bool
+    IsUnifiedMemory  bool
+    TotalMemory      uint64  // bytes
+    MaxBufferSize    uint64  // bytes
+    MaxWorkgroupSize uint32
+    SIMDWidth        uint32
+    Capabilities     DeviceCaps
+}
+```
+
+### MemoryGB
+
+```go
+func (d *DeviceInfo) MemoryGB() float64
+```
+
+Returns total memory in gigabytes.
+
+---
+
+## DeviceCaps
+
+Device capability flags.
+
+```go
+type DeviceCaps uint32
+
+const (
+    CapFP16        DeviceCaps = 1 << iota  // Half-precision float
+    CapFP64                                 // Double precision
+    CapSubgroups                            // Subgroup/warp operations
+    CapInt64Atomics                         // 64-bit atomic operations
+)
+```
+
+### Has
+
+```go
+func (c DeviceCaps) Has(cap DeviceCaps) bool
+```
+
+Returns true if the device has the specified capability.
+
+```go
+if info.Capabilities.Has(accel.CapFP16) {
+    fmt.Println("Device supports FP16")
+}
+```
+
+---
+
+## DType
+
+Tensor data type.
+
+```go
+type DType int
+
+const (
+    Float32 DType = iota
+    Float16
+    Float64
+    Int32
+    Int64
+    Uint8
+    Uint32
+    Uint64
+)
+```
+
+### Size
+
+```go
+func (d DType) Size() int
+```
+
+Returns the byte size of a single element.
+
+### String
+
+```go
+func (d DType) String() string
+```
+
+Returns the dtype name.
+
+---
+
+## TensorElement
+
+Type constraint for tensor element types.
+
+```go
+type TensorElement interface {
+    float32 | float64 | int32 | int64 | uint8 | uint32 | uint64
+}
+```
+
+---
+
+## Errors
+
+```go
+var (
+    ErrNotAvailable    = errors.New("accel: no GPU backend available")
+    ErrInvalidArgument = errors.New("accel: invalid argument")
+    ErrSessionClosed   = errors.New("accel: session closed")
+    ErrOutOfMemory     = errors.New("accel: out of GPU memory")
+    ErrBackendError    = errors.New("accel: backend error")
+)
+```
