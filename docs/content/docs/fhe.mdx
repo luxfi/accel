@@ -1,0 +1,433 @@
+---
+title: FHE Operations
+description: GPU-accelerated fully homomorphic encryption with BFV and CKKS schemes
+---
+
+# FHE Operations
+
+The `FHEOps` interface provides GPU-accelerated fully homomorphic encryption operations for privacy-preserving computation.
+
+## Overview
+
+```go
+fhe := session.FHE()
+```
+
+Supported schemes:
+- **BFV**: Exact arithmetic on integers (Brakerski-Fan-Vercauteren)
+- **CKKS**: Approximate arithmetic on real numbers (Cheon-Kim-Kim-Song)
+
+## BFV Scheme
+
+BFV provides exact arithmetic on integers, suitable for applications requiring precise computations.
+
+### Key Generation
+
+Keys must be generated outside the accel library using OpenFHE or similar tools. The GPU operations work with pre-generated keys.
+
+### BFVEncrypt
+
+Encrypts plaintext with BFV scheme.
+
+```go
+// BFVEncrypt(plaintext, pk, ciphertext *UntypedTensor) error
+// plaintext: [N] int64 values (N <= poly_modulus_degree)
+// pk: public key
+// ciphertext: output ciphertext
+
+// Create plaintext vector
+plaintext, _ := accel.NewTensorWithData[int64](session, []int{4096}, plaintextData)
+pk, _ := accel.NewTensorWithData[uint8](session, []int{pkSize}, publicKey)
+ciphertext, _ := accel.NewTensor[uint8](session, []int{ctSize})
+
+if err := session.FHE().BFVEncrypt(
+    plaintext.Untyped(),
+    pk.Untyped(),
+    ciphertext.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+```
+
+### BFVEncryptBatch
+
+Encrypts multiple plaintexts in parallel.
+
+```go
+// BFVEncryptBatch(plaintexts, pk, ciphertexts *UntypedTensor) error
+// plaintexts: [M, N] int64
+// pk: public key
+// ciphertexts: [M, ...] output
+
+batchSize := 100
+plaintexts, _ := accel.NewTensorWithData[int64](session, []int{batchSize, 4096}, allPlaintexts)
+pk, _ := accel.NewTensorWithData[uint8](session, []int{pkSize}, publicKey)
+ciphertexts, _ := accel.NewTensor[uint8](session, []int{batchSize, ctSize})
+
+if err := session.FHE().BFVEncryptBatch(
+    plaintexts.Untyped(),
+    pk.Untyped(),
+    ciphertexts.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+```
+
+### BFVDecrypt
+
+Decrypts ciphertext.
+
+```go
+// BFVDecrypt(ciphertext, sk, plaintext *UntypedTensor) error
+// ciphertext: input ciphertext
+// sk: secret key
+// plaintext: [N] int64 output
+
+if err := session.FHE().BFVDecrypt(
+    ciphertext.Untyped(),
+    sk.Untyped(),
+    plaintext.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+
+result, _ := plaintext.ToSlice()
+```
+
+### BFVAdd
+
+Adds two ciphertexts.
+
+```go
+// BFVAdd(ct1, ct2, result *UntypedTensor) error
+// ct1, ct2: input ciphertexts
+// result: output ciphertext
+
+if err := session.FHE().BFVAdd(
+    ct1.Untyped(),
+    ct2.Untyped(),
+    result.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+```
+
+### BFVMultiply
+
+Multiplies ciphertexts with relinearization.
+
+```go
+// BFVMultiply(ct1, ct2, relinKey, result *UntypedTensor) error
+// ct1, ct2: input ciphertexts
+// relinKey: relinearization key
+// result: output ciphertext
+
+if err := session.FHE().BFVMultiply(
+    ct1.Untyped(),
+    ct2.Untyped(),
+    relinKey.Untyped(),
+    result.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+```
+
+### BFVMultiplyPlain
+
+Multiplies ciphertext by plaintext (more efficient).
+
+```go
+// BFVMultiplyPlain(ct, plain, result *UntypedTensor) error
+// ct: input ciphertext
+// plain: [N] int64 plaintext
+// result: output ciphertext
+
+if err := session.FHE().BFVMultiplyPlain(
+    ct.Untyped(),
+    plain.Untyped(),
+    result.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+```
+
+### BFVRotate
+
+Rotates ciphertext slots.
+
+```go
+// BFVRotate(ct, galoisKey *UntypedTensor, steps int, result *UntypedTensor) error
+// ct: input ciphertext
+// galoisKey: Galois key for rotation
+// steps: rotation amount (positive = left)
+// result: output ciphertext
+
+if err := session.FHE().BFVRotate(
+    ct.Untyped(),
+    galoisKey.Untyped(),
+    5,  // rotate left by 5 positions
+    result.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+```
+
+## CKKS Scheme
+
+CKKS provides approximate arithmetic on real numbers, suitable for ML inference and floating-point computations.
+
+### CKKSEncrypt
+
+Encrypts with CKKS (approximate arithmetic).
+
+```go
+// CKKSEncrypt(plaintext, pk *UntypedTensor, scale float64, ciphertext *UntypedTensor) error
+// plaintext: [N] float64 values
+// pk: public key
+// scale: encoding scale (typically 2^40)
+// ciphertext: output
+
+scale := math.Pow(2, 40)
+plaintext, _ := accel.NewTensorWithData[float64](session, []int{4096}, floatData)
+pk, _ := accel.NewTensorWithData[uint8](session, []int{pkSize}, publicKey)
+ciphertext, _ := accel.NewTensor[uint8](session, []int{ctSize})
+
+if err := session.FHE().CKKSEncrypt(
+    plaintext.Untyped(),
+    pk.Untyped(),
+    scale,
+    ciphertext.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+```
+
+### CKKSDecrypt
+
+Decrypts CKKS ciphertext.
+
+```go
+// CKKSDecrypt(ciphertext, sk, plaintext *UntypedTensor) error
+// ciphertext: input
+// sk: secret key
+// plaintext: [N] float64 output
+
+if err := session.FHE().CKKSDecrypt(
+    ciphertext.Untyped(),
+    sk.Untyped(),
+    plaintext.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+
+result, _ := plaintext.ToSlice()
+// result contains approximate values
+```
+
+### CKKSAdd
+
+Adds two CKKS ciphertexts.
+
+```go
+// CKKSAdd(ct1, ct2, result *UntypedTensor) error
+
+if err := session.FHE().CKKSAdd(ct1.Untyped(), ct2.Untyped(), result.Untyped()); err != nil {
+    log.Fatal(err)
+}
+```
+
+### CKKSMultiply
+
+Multiplies CKKS ciphertexts.
+
+```go
+// CKKSMultiply(ct1, ct2, relinKey, result *UntypedTensor) error
+
+if err := session.FHE().CKKSMultiply(
+    ct1.Untyped(),
+    ct2.Untyped(),
+    relinKey.Untyped(),
+    result.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+```
+
+### CKKSRescale
+
+Rescales ciphertext after multiplication to manage noise growth.
+
+```go
+// CKKSRescale(ct, result *UntypedTensor) error
+
+if err := session.FHE().CKKSRescale(ct.Untyped(), result.Untyped()); err != nil {
+    log.Fatal(err)
+}
+```
+
+### CKKSRotate
+
+Rotates CKKS slots.
+
+```go
+// CKKSRotate(ct, galoisKey *UntypedTensor, steps int, result *UntypedTensor) error
+
+if err := session.FHE().CKKSRotate(
+    ct.Untyped(),
+    galoisKey.Untyped(),
+    1,  // rotate left by 1
+    result.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+```
+
+## Bootstrapping
+
+### Bootstrap
+
+Refreshes ciphertext noise level (limited support).
+
+```go
+// Bootstrap(ct, bootstrapKey, result *UntypedTensor) error
+
+if err := session.FHE().Bootstrap(
+    ct.Untyped(),
+    bootstrapKey.Untyped(),
+    result.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+```
+
+Note: Bootstrapping is computationally expensive and has limited parameter support.
+
+## Performance Benchmarks
+
+On Apple M3 Max:
+
+| Operation | Scheme | Poly Degree | Time |
+|-----------|--------|-------------|------|
+| Encrypt | BFV | 4096 | 0.5ms |
+| Encrypt | BFV | 16384 | 2.1ms |
+| Decrypt | BFV | 4096 | 0.3ms |
+| Add | BFV | 4096 | 0.02ms |
+| Multiply | BFV | 4096 | 1.2ms |
+| Encrypt | CKKS | 4096 | 0.6ms |
+| Multiply | CKKS | 4096 | 1.5ms |
+| Rescale | CKKS | 4096 | 0.4ms |
+| Rotate | Both | 4096 | 0.8ms |
+
+## C++ Library Reference
+
+FHE operations are implemented in `/luxcpp/fhe/`:
+
+```text
+fhe/
+├── include/lux/
+│   └── fhe/
+│       ├── bfv.h       # BFV scheme
+│       ├── ckks.h      # CKKS scheme
+│       ├── keys.h      # Key structures
+│       └── params.h    # Parameters
+│
+├── src/
+│   ├── binfhe/         # Binary FHE
+│   ├── core/           # Core operations
+│   │   ├── lattice/    # NTT, polynomial
+│   │   └── math/       # Field arithmetic
+│   └── pke/            # Public-key encryption
+│       ├── scheme-bfv.cpp
+│       └── scheme-ckks.cpp
+│
+├── go/
+│   ├── ckks/           # Go bindings for CKKS
+│   └── tfhe/           # Go bindings for TFHE
+│
+└── contracts/
+    ├── FHE.sol         # FHE precompile interface
+    └── Precompile.sol  # EVM integration
+```
+
+## Example: Private ML Inference
+
+```go
+package main
+
+import (
+    "github.com/luxfi/accel"
+    "math"
+)
+
+func privateInference(session *accel.Session, encryptedInput []byte, model *Model) ([]byte, error) {
+    fhe := session.FHE()
+    scale := math.Pow(2, 40)
+
+    // Load encrypted input
+    input, _ := accel.NewTensorWithData[uint8](session, []int{len(encryptedInput)}, encryptedInput)
+
+    // Layer 1: Linear + ReLU (approximated with polynomial)
+    // weight * input + bias
+    for _, layer := range model.Layers {
+        // Multiply with weight (plaintext)
+        temp, _ := accel.NewTensor[uint8](session, []int{ctSize})
+        if err := fhe.CKKSMultiply(input.Untyped(), layer.Weight.Untyped(),
+            model.RelinKey.Untyped(), temp.Untyped()); err != nil {
+            return nil, err
+        }
+
+        // Rescale after multiplication
+        if err := fhe.CKKSRescale(temp.Untyped(), input.Untyped()); err != nil {
+            return nil, err
+        }
+
+        // Add bias
+        if err := fhe.CKKSAdd(input.Untyped(), layer.Bias.Untyped(), input.Untyped()); err != nil {
+            return nil, err
+        }
+
+        // Apply polynomial approximation of ReLU
+        // ReLU(x) ≈ a0 + a1*x + a2*x^2 + ...
+        // ...
+    }
+
+    session.Sync()
+
+    // Return encrypted result
+    result, _ := input.ToSlice()
+    return result, nil
+}
+```
+
+## Parameter Selection
+
+### BFV Parameters
+
+| Security | Poly Degree | Coeff Mod | Plaintext Mod |
+|----------|-------------|-----------|---------------|
+| 128-bit | 4096 | 109 bits | varies |
+| 128-bit | 8192 | 218 bits | varies |
+| 128-bit | 16384 | 438 bits | varies |
+
+### CKKS Parameters
+
+| Security | Poly Degree | Scale | Multiplicative Depth |
+|----------|-------------|-------|---------------------|
+| 128-bit | 4096 | 2^40 | 3 |
+| 128-bit | 8192 | 2^40 | 7 |
+| 128-bit | 16384 | 2^40 | 15 |
+
+## Integration with EVM
+
+FHE precompiles for EVM are defined in `/luxcpp/fhe/contracts/`:
+
+```solidity
+// FHE.sol
+interface IFHE {
+    function add(bytes calldata ct1, bytes calldata ct2) external returns (bytes memory);
+    function multiply(bytes calldata ct1, bytes calldata ct2) external returns (bytes memory);
+    function decrypt(bytes calldata ct) external returns (uint256);
+}
+```
+
+The precompiles use the GPU-accelerated operations via the accel package.

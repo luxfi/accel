@@ -1,0 +1,322 @@
+---
+title: Backends
+description: Metal, CUDA, and WebGPU backend configuration and selection
+---
+
+# Backends
+
+Lux Accel supports multiple GPU compute backends. The library automatically selects the best available backend, or you can explicitly choose one.
+
+## Available Backends
+
+### Metal (Apple Silicon)
+
+The Metal backend provides optimal performance on Apple Silicon Macs (M1/M2/M3/M4 series).
+
+**Features:**
+- Unified memory architecture (no CPU-GPU copies)
+- Native half-precision (FP16) support
+- Tile memory and threadgroup optimizations
+- Metal Performance Shaders integration
+
+**Requirements:**
+- macOS 12+ (Monterey or later)
+- Apple Silicon or discrete AMD GPU
+
+```go
+session, err := accel.NewSessionWithBackend(accel.BackendMetal)
+```
+
+### CUDA (NVIDIA)
+
+The CUDA backend provides maximum performance on NVIDIA GPUs.
+
+**Features:**
+- Tensor Cores support (Volta and newer)
+- Multi-GPU support
+- cuBLAS and cuDNN integration
+- Async memory operations
+
+**Requirements:**
+- NVIDIA GPU with Compute Capability 7.0+
+- CUDA Toolkit 12.0+
+- Driver 525+
+
+```go
+session, err := accel.NewSessionWithBackend(accel.BackendCUDA)
+```
+
+### WebGPU (Cross-Platform)
+
+The WebGPU backend uses Dawn for cross-platform GPU compute.
+
+**Features:**
+- Works on Metal, Vulkan, and D3D12
+- Browser-compatible (via wasm build)
+- Consistent API across platforms
+
+**Requirements:**
+- Any modern GPU
+- Dawn library (bundled)
+
+```go
+session, err := accel.NewSessionWithBackend(accel.BackendWebGPU)
+```
+
+## Backend Selection
+
+### Automatic Selection
+
+By default, `NewSession()` selects the best available backend:
+
+```go
+// Priority: CUDA > Metal > WebGPU
+session, err := accel.NewSession()
+```
+
+The selection priority is defined in `BackendPriority`:
+
+```go
+var BackendPriority = []BackendType{
+    BackendCUDA,   // Highest priority
+    BackendMetal,  // Apple Silicon
+    BackendWebGPU, // Fallback
+}
+```
+
+### Explicit Selection
+
+Specify a backend directly:
+
+```go
+// Use Metal backend
+session, err := accel.NewSessionWithBackend(accel.BackendMetal)
+
+// Use specific device
+session, err := accel.NewSessionWithDevice(accel.BackendCUDA, 0)  // First CUDA GPU
+session, err := accel.NewSessionWithDevice(accel.BackendCUDA, 1)  // Second CUDA GPU
+```
+
+### Checking Availability
+
+```go
+// Check what's available
+backends := accel.Backends()
+fmt.Println("Available backends:", backends)
+
+// Get device details
+for _, device := range accel.Devices() {
+    fmt.Printf("%s: %s (%s) - %.2f GB\n",
+        device.Backend,
+        device.Name,
+        device.Vendor,
+        device.MemoryGB(),
+    )
+}
+```
+
+## Device Information
+
+Each device provides detailed information:
+
+```go
+info := session.DeviceInfo()
+
+fmt.Printf("Backend: %s\n", info.Backend)
+fmt.Printf("Device: %s\n", info.Name)
+fmt.Printf("Vendor: %s\n", info.Vendor)
+fmt.Printf("Memory: %.2f GB\n", info.MemoryGB())
+fmt.Printf("Max Buffer: %d MB\n", info.MaxBufferSize/(1024*1024))
+fmt.Printf("Workgroup Size: %d\n", info.MaxWorkgroupSize)
+fmt.Printf("SIMD Width: %d\n", info.SIMDWidth)
+fmt.Printf("Unified Memory: %v\n", info.IsUnifiedMemory)
+fmt.Printf("Discrete GPU: %v\n", info.IsDiscrete)
+```
+
+### Device Capabilities
+
+Check for specific features:
+
+```go
+caps := info.Capabilities
+
+if caps.Has(accel.CapFP16) {
+    fmt.Println("FP16 supported - can use half-precision")
+}
+
+if caps.Has(accel.CapFP64) {
+    fmt.Println("FP64 supported - can use double-precision")
+}
+
+if caps.Has(accel.CapSubgroups) {
+    fmt.Println("Subgroups supported - efficient reductions")
+}
+
+if caps.Has(accel.CapInt64Atomics) {
+    fmt.Println("Int64 atomics supported")
+}
+```
+
+## C++ Library Structure
+
+The Go package binds to C++ libraries at `/Users/z/work/luxcpp/`:
+
+### lux-gpu
+
+Core GPU abstraction layer (`/luxcpp/lux-gpu/`).
+
+```cpp
+// include/lux/gpu/device.h
+class Device {
+public:
+    virtual DeviceInfo info() const = 0;
+    virtual Buffer createBuffer(size_t size) = 0;
+    virtual void submit(CommandBuffer& cmd) = 0;
+};
+```
+
+**Source files:**
+- `src/context.cpp` - Device enumeration
+- `src/buffer.cpp` - GPU buffer management
+- `src/kernel.cpp` - Compute kernel dispatch
+- `src/registry.cpp` - Backend plugin registry
+
+### lux-metal
+
+Metal backend plugin (`/luxcpp/lux-metal/`).
+
+```cpp
+// src/metal_plugin.mm
+class MetalDevice : public Device {
+    id<MTLDevice> device_;
+    id<MTLCommandQueue> queue_;
+public:
+    void submit(CommandBuffer& cmd) override;
+};
+```
+
+### lux-cuda
+
+CUDA backend plugin (`/luxcpp/lux-cuda/`).
+
+```cpp
+// src/cuda_plugin.cpp
+class CudaDevice : public Device {
+    CUdevice device_;
+    CUcontext context_;
+    CUstream stream_;
+public:
+    void submit(CommandBuffer& cmd) override;
+};
+```
+
+### lux-webgpu
+
+WebGPU backend plugin (`/luxcpp/lux-webgpu/`).
+
+```cpp
+// src/webgpu_plugin.cpp
+class WebGPUDevice : public Device {
+    wgpu::Device device_;
+    wgpu::Queue queue_;
+public:
+    void submit(CommandBuffer& cmd) override;
+};
+```
+
+### lux-accel
+
+Unified C API (`/luxcpp/lux-accel/`).
+
+```cpp
+// include/lux/accel/accel.h
+extern "C" {
+    int lux_init();
+    void lux_shutdown();
+    int lux_backend_count();
+    lux_session_t lux_session_create(int backend, int device);
+    void lux_session_destroy(lux_session_t session);
+    int lux_tensor_create(lux_session_t s, int dtype, int* shape, int ndim, lux_tensor_t* out);
+    // ... more functions
+}
+```
+
+## Kernel Locations
+
+GPU compute kernels are in `/luxcpp/kernels/`:
+
+```text
+kernels/
+├── metal/          # Metal Shading Language
+│   ├── crypto/     # SHA256, Keccak, BLS, etc.
+│   ├── fhe/        # BFV, CKKS operations
+│   ├── gpu/        # General compute (matmul, etc.)
+│   ├── lattice/    # NTT, polynomial operations
+│   └── steel/      # ML operations (attention, etc.)
+│
+├── cuda/           # CUDA kernels (.cu)
+│   ├── crypto/
+│   ├── fhe/
+│   ├── gpu/
+│   ├── lattice/
+│   └── steel/
+│
+└── webgpu/         # WGSL shaders
+    ├── crypto/
+    ├── fhe/
+    ├── gpu/
+    ├── lattice/
+    └── steel/
+```
+
+## Performance Tuning
+
+### Memory Management
+
+```go
+// Pre-allocate tensors to avoid repeated allocation
+tensors := make([]*accel.Tensor[float32], 10)
+for i := range tensors {
+    tensors[i], _ = accel.NewTensor[float32](session, []int{1024, 1024})
+}
+
+// Reuse tensors in a loop
+for batch := range batches {
+    // Use existing tensors
+    session.ML().MatMul(tensors[0].Untyped(), tensors[1].Untyped(), tensors[2].Untyped())
+}
+
+// Clean up
+for _, t := range tensors {
+    t.Close()
+}
+```
+
+### Async Operations
+
+```go
+// Enable async mode
+session, _ := accel.NewSession(accel.WithAsync(true))
+
+// Queue multiple operations
+for i := 0; i < 100; i++ {
+    session.ML().MatMul(a, b, c)
+}
+
+// Sync at end
+session.Sync()
+```
+
+### Backend-Specific Optimizations
+
+**Metal:**
+- Use unified memory tensors (automatic on Apple Silicon)
+- Batch small operations to reduce command encoder overhead
+
+**CUDA:**
+- Use pinned memory for CPU-GPU transfers
+- Leverage streams for concurrent kernel execution
+
+**WebGPU:**
+- Minimize buffer mapping operations
+- Use compute passes for batched work

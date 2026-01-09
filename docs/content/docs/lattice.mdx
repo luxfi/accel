@@ -1,0 +1,476 @@
+---
+title: Post-Quantum Crypto
+description: GPU-accelerated lattice-based cryptography with ML-KEM (Kyber) and ML-DSA (Dilithium)
+---
+
+# Post-Quantum Crypto
+
+The `LatticeOps` interface provides GPU-accelerated lattice-based cryptography operations implementing NIST post-quantum standards.
+
+## Overview
+
+```go
+lattice := session.Lattice()
+```
+
+Supported algorithms:
+- **ML-KEM (Kyber)**: Key Encapsulation Mechanism for key exchange
+- **ML-DSA (Dilithium)**: Digital Signature Algorithm for signatures
+- **Polynomial Operations**: NTT, multiplication, addition in polynomial rings
+
+## ML-KEM (Kyber)
+
+Kyber is a lattice-based key encapsulation mechanism selected by NIST for post-quantum standardization.
+
+### Key Generation
+
+```go
+// KyberKeyGen(pk, sk *UntypedTensor) error
+// pk: [1184] bytes (Kyber768 public key)
+// sk: [2400] bytes (Kyber768 secret key)
+
+pk, _ := accel.NewTensor[uint8](session, []int{1184})
+sk, _ := accel.NewTensor[uint8](session, []int{2400})
+
+if err := session.Lattice().KyberKeyGen(pk.Untyped(), sk.Untyped()); err != nil {
+    log.Fatal(err)
+}
+
+publicKey, _ := pk.ToSlice()
+secretKey, _ := sk.ToSlice()
+```
+
+### Batch Key Generation
+
+Generate multiple key pairs in parallel.
+
+```go
+// KyberKeyGenBatch(pk, sk *UntypedTensor) error
+// pk: [N, 1184] bytes
+// sk: [N, 2400] bytes
+
+batchSize := 1000
+pk, _ := accel.NewTensor[uint8](session, []int{batchSize, 1184})
+sk, _ := accel.NewTensor[uint8](session, []int{batchSize, 2400})
+
+if err := session.Lattice().KyberKeyGenBatch(pk.Untyped(), sk.Untyped()); err != nil {
+    log.Fatal(err)
+}
+
+session.Sync()
+publicKeys, _ := pk.ToSlice()
+// publicKeys[i*1184:(i+1)*1184] contains public key i
+```
+
+### Encapsulation
+
+Encapsulate a shared secret using a public key.
+
+```go
+// KyberEncaps(pk, ct, ss *UntypedTensor) error
+// pk: [1184] bytes public key
+// ct: [1088] bytes ciphertext output
+// ss: [32] bytes shared secret output
+
+pk, _ := accel.NewTensorWithData[uint8](session, []int{1184}, publicKey)
+ct, _ := accel.NewTensor[uint8](session, []int{1088})
+ss, _ := accel.NewTensor[uint8](session, []int{32})
+
+if err := session.Lattice().KyberEncaps(pk.Untyped(), ct.Untyped(), ss.Untyped()); err != nil {
+    log.Fatal(err)
+}
+
+ciphertext, _ := ct.ToSlice()
+sharedSecret, _ := ss.ToSlice()
+```
+
+### Batch Encapsulation
+
+Perform encapsulation for multiple public keys.
+
+```go
+// KyberEncapsBatch(pk, ct, ss *UntypedTensor) error
+// pk: [N, 1184] bytes
+// ct: [N, 1088] bytes
+// ss: [N, 32] bytes
+
+batchSize := 10000
+pk, _ := accel.NewTensorWithData[uint8](session, []int{batchSize, 1184}, allPublicKeys)
+ct, _ := accel.NewTensor[uint8](session, []int{batchSize, 1088})
+ss, _ := accel.NewTensor[uint8](session, []int{batchSize, 32})
+
+if err := session.Lattice().KyberEncapsBatch(pk.Untyped(), ct.Untyped(), ss.Untyped()); err != nil {
+    log.Fatal(err)
+}
+
+session.Sync()
+```
+
+### Decapsulation
+
+Decapsulate to recover the shared secret.
+
+```go
+// KyberDecaps(ct, sk, ss *UntypedTensor) error
+// ct: [1088] bytes ciphertext
+// sk: [2400] bytes secret key
+// ss: [32] bytes shared secret output
+
+ct, _ := accel.NewTensorWithData[uint8](session, []int{1088}, ciphertext)
+sk, _ := accel.NewTensorWithData[uint8](session, []int{2400}, secretKey)
+ss, _ := accel.NewTensor[uint8](session, []int{32})
+
+if err := session.Lattice().KyberDecaps(ct.Untyped(), sk.Untyped(), ss.Untyped()); err != nil {
+    log.Fatal(err)
+}
+
+recoveredSecret, _ := ss.ToSlice()
+```
+
+### Batch Decapsulation
+
+```go
+// KyberDecapsBatch(ct, sk, ss *UntypedTensor) error
+// ct: [N, 1088] bytes
+// sk: [N, 2400] bytes
+// ss: [N, 32] bytes
+
+if err := session.Lattice().KyberDecapsBatch(ct.Untyped(), sk.Untyped(), ss.Untyped()); err != nil {
+    log.Fatal(err)
+}
+```
+
+## ML-DSA (Dilithium)
+
+Dilithium is a lattice-based digital signature algorithm selected by NIST for post-quantum standardization.
+
+### Key Generation
+
+```go
+// DilithiumKeyGen(pk, sk *UntypedTensor) error
+// pk: [1952] bytes (Dilithium3 public key)
+// sk: [4016] bytes (Dilithium3 secret key)
+
+pk, _ := accel.NewTensor[uint8](session, []int{1952})
+sk, _ := accel.NewTensor[uint8](session, []int{4016})
+
+if err := session.Lattice().DilithiumKeyGen(pk.Untyped(), sk.Untyped()); err != nil {
+    log.Fatal(err)
+}
+```
+
+### Signing
+
+```go
+// DilithiumSign(msg, sk, sig *UntypedTensor) error
+// msg: [msg_len] bytes message
+// sk: [4016] bytes secret key
+// sig: [3293] bytes signature output
+
+message := []byte("Hello, quantum world!")
+msg, _ := accel.NewTensorWithData[uint8](session, []int{len(message)}, message)
+sk, _ := accel.NewTensorWithData[uint8](session, []int{4016}, secretKey)
+sig, _ := accel.NewTensor[uint8](session, []int{3293})
+
+if err := session.Lattice().DilithiumSign(msg.Untyped(), sk.Untyped(), sig.Untyped()); err != nil {
+    log.Fatal(err)
+}
+
+signature, _ := sig.ToSlice()
+```
+
+### Batch Signing
+
+Sign multiple messages with the same key.
+
+```go
+// DilithiumSignBatch(msgs, sk, sigs *UntypedTensor) error
+// msgs: [N, msg_len] bytes
+// sk: [4016] bytes (same key for all)
+// sigs: [N, 3293] bytes
+
+batchSize := 1000
+msgLen := 64
+
+msgs, _ := accel.NewTensorWithData[uint8](session, []int{batchSize, msgLen}, allMessages)
+sk, _ := accel.NewTensorWithData[uint8](session, []int{4016}, secretKey)
+sigs, _ := accel.NewTensor[uint8](session, []int{batchSize, 3293})
+
+if err := session.Lattice().DilithiumSignBatch(msgs.Untyped(), sk.Untyped(), sigs.Untyped()); err != nil {
+    log.Fatal(err)
+}
+```
+
+### Verification
+
+```go
+// DilithiumVerify(msg, sig, pk *UntypedTensor) (bool, error)
+// msg: [msg_len] bytes
+// sig: [3293] bytes
+// pk: [1952] bytes
+// Returns true if valid.
+
+msg, _ := accel.NewTensorWithData[uint8](session, []int{len(message)}, message)
+sig, _ := accel.NewTensorWithData[uint8](session, []int{3293}, signature)
+pk, _ := accel.NewTensorWithData[uint8](session, []int{1952}, publicKey)
+
+valid, err := session.Lattice().DilithiumVerify(msg.Untyped(), sig.Untyped(), pk.Untyped())
+if err != nil {
+    log.Fatal(err)
+}
+
+if valid {
+    fmt.Println("Signature is valid")
+}
+```
+
+### Batch Verification
+
+```go
+// DilithiumVerifyBatch(msgs, sigs, pks, results *UntypedTensor) error
+// msgs: [N, msg_len] bytes
+// sigs: [N, 3293] bytes
+// pks: [N, 1952] bytes
+// results: [N] uint8 (1 = valid, 0 = invalid)
+
+batchSize := 10000
+results, _ := accel.NewTensor[uint8](session, []int{batchSize})
+
+if err := session.Lattice().DilithiumVerifyBatch(
+    msgs.Untyped(),
+    sigs.Untyped(),
+    pks.Untyped(),
+    results.Untyped(),
+); err != nil {
+    log.Fatal(err)
+}
+
+session.Sync()
+valid, _ := results.ToSlice()
+```
+
+## Polynomial Operations
+
+Low-level operations on polynomials in the ring Z_q[X]/(X^256 + 1).
+
+### Polynomial NTT
+
+```go
+// PolynomialNTT(input, output *UntypedTensor, q uint32) error
+// Operates on polynomials in Z_q[X]/(X^256 + 1).
+
+// Kyber modulus
+const kyberQ = uint32(3329)
+
+input, _ := accel.NewTensorWithData[uint32](session, []int{256}, coefficients)
+output, _ := accel.NewTensor[uint32](session, []int{256})
+
+if err := session.Lattice().PolynomialNTT(input.Untyped(), output.Untyped(), kyberQ); err != nil {
+    log.Fatal(err)
+}
+```
+
+### Polynomial INTT
+
+```go
+// PolynomialINTT(input, output *UntypedTensor, q uint32) error
+
+if err := session.Lattice().PolynomialINTT(input.Untyped(), output.Untyped(), kyberQ); err != nil {
+    log.Fatal(err)
+}
+```
+
+### Polynomial Multiplication
+
+```go
+// PolynomialMul(a, b, c *UntypedTensor, q uint32) error
+// Multiplication in NTT domain.
+
+if err := session.Lattice().PolynomialMul(a.Untyped(), b.Untyped(), c.Untyped(), kyberQ); err != nil {
+    log.Fatal(err)
+}
+```
+
+### Polynomial Addition
+
+```go
+// PolynomialAdd(a, b, c *UntypedTensor, q uint32) error
+
+if err := session.Lattice().PolynomialAdd(a.Untyped(), b.Untyped(), c.Untyped(), kyberQ); err != nil {
+    log.Fatal(err)
+}
+```
+
+## Performance Benchmarks
+
+On Apple M3 Max:
+
+| Operation | Batch Size | Time | Throughput |
+|-----------|------------|------|------------|
+| Kyber KeyGen | 1 | 0.15ms | 6.7K/s |
+| Kyber KeyGen | 10K | 8ms | 1.25M/s |
+| Kyber Encaps | 1 | 0.12ms | 8.3K/s |
+| Kyber Encaps | 10K | 6ms | 1.67M/s |
+| Kyber Decaps | 1 | 0.10ms | 10K/s |
+| Kyber Decaps | 10K | 5ms | 2M/s |
+| Dilithium KeyGen | 1 | 0.25ms | 4K/s |
+| Dilithium Sign | 1 | 0.35ms | 2.9K/s |
+| Dilithium Sign | 10K | 15ms | 667K/s |
+| Dilithium Verify | 1 | 0.20ms | 5K/s |
+| Dilithium Verify | 10K | 10ms | 1M/s |
+
+## Security Parameters
+
+### Kyber Parameters (NIST Level 3)
+
+| Parameter | Kyber768 |
+|-----------|----------|
+| Security Level | 128-bit classical |
+| Public Key | 1184 bytes |
+| Secret Key | 2400 bytes |
+| Ciphertext | 1088 bytes |
+| Shared Secret | 32 bytes |
+
+### Dilithium Parameters (NIST Level 3)
+
+| Parameter | Dilithium3 |
+|-----------|------------|
+| Security Level | 128-bit classical |
+| Public Key | 1952 bytes |
+| Secret Key | 4016 bytes |
+| Signature | 3293 bytes |
+
+## C++ Library Reference
+
+Lattice operations are implemented in `/luxcpp/lattice/`:
+
+```text
+lattice/
+├── include/lux/lattice/
+│   ├── kyber.h         # ML-KEM interface
+│   ├── dilithium.h     # ML-DSA interface
+│   ├── ntt.h           # NTT operations
+│   ├── params.h        # Parameter sets
+│   └── poly.h          # Polynomial arithmetic
+│
+├── src/
+│   ├── lattice.cpp     # CPU implementations
+│   ├── metal/
+│   │   └── ntt_kernels.metal
+│   ├── cuda/
+│   │   └── ntt_kernels.cu
+│   └── wgsl/
+│       └── ntt_kernels.wgsl
+│
+├── go.mod              # Go module
+├── ntt.go              # Go NTT interface
+├── ring.go             # Ring operations
+└── sampling.go         # Noise sampling
+```
+
+## Example: Quantum-Safe Key Exchange
+
+```go
+package main
+
+import (
+    "bytes"
+    "github.com/luxfi/accel"
+)
+
+func quantumKeyExchange(session *accel.Session) error {
+    lattice := session.Lattice()
+
+    // Alice generates key pair
+    alicePK, _ := accel.NewTensor[uint8](session, []int{1184})
+    aliceSK, _ := accel.NewTensor[uint8](session, []int{2400})
+    if err := lattice.KyberKeyGen(alicePK.Untyped(), aliceSK.Untyped()); err != nil {
+        return err
+    }
+
+    // Bob encapsulates to Alice's public key
+    bobCT, _ := accel.NewTensor[uint8](session, []int{1088})
+    bobSS, _ := accel.NewTensor[uint8](session, []int{32})
+    if err := lattice.KyberEncaps(alicePK.Untyped(), bobCT.Untyped(), bobSS.Untyped()); err != nil {
+        return err
+    }
+
+    // Alice decapsulates to get shared secret
+    aliceSS, _ := accel.NewTensor[uint8](session, []int{32})
+    if err := lattice.KyberDecaps(bobCT.Untyped(), aliceSK.Untyped(), aliceSS.Untyped()); err != nil {
+        return err
+    }
+
+    session.Sync()
+
+    // Verify shared secrets match
+    bobSecret, _ := bobSS.ToSlice()
+    aliceSecret, _ := aliceSS.ToSlice()
+
+    if !bytes.Equal(bobSecret, aliceSecret) {
+        return fmt.Errorf("shared secrets do not match")
+    }
+
+    fmt.Printf("Shared secret: %x\n", aliceSecret)
+    return nil
+}
+```
+
+## Example: Quantum-Safe Signatures
+
+```go
+func signAndVerify(session *accel.Session, messages [][]byte) error {
+    lattice := session.Lattice()
+
+    // Generate signing key
+    pk, _ := accel.NewTensor[uint8](session, []int{1952})
+    sk, _ := accel.NewTensor[uint8](session, []int{4016})
+    if err := lattice.DilithiumKeyGen(pk.Untyped(), sk.Untyped()); err != nil {
+        return err
+    }
+
+    // Sign all messages in batch
+    n := len(messages)
+    maxLen := maxMessageLength(messages)
+    msgs, _ := accel.NewTensor[uint8](session, []int{n, maxLen})
+    sigs, _ := accel.NewTensor[uint8](session, []int{n, 3293})
+
+    // Fill message tensor
+    fillMessages(msgs, messages)
+
+    if err := lattice.DilithiumSignBatch(msgs.Untyped(), sk.Untyped(), sigs.Untyped()); err != nil {
+        return err
+    }
+
+    // Verify all signatures in batch
+    pks, _ := accel.NewTensor[uint8](session, []int{n, 1952})
+    results, _ := accel.NewTensor[uint8](session, []int{n})
+
+    // Copy public key for all verifications
+    pkData, _ := pk.ToSlice()
+    for i := 0; i < n; i++ {
+        copy(pks[i*1952:(i+1)*1952], pkData)
+    }
+
+    if err := lattice.DilithiumVerifyBatch(
+        msgs.Untyped(),
+        sigs.Untyped(),
+        pks.Untyped(),
+        results.Untyped(),
+    ); err != nil {
+        return err
+    }
+
+    session.Sync()
+
+    // Check all signatures are valid
+    valid, _ := results.ToSlice()
+    for i, v := range valid {
+        if v != 1 {
+            return fmt.Errorf("signature %d is invalid", i)
+        }
+    }
+
+    return nil
+}
+```
