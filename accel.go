@@ -62,3 +62,23 @@ func GetVersion() string {
 func GetLastError() string {
 	return lastError()
 }
+
+// SelectBackend returns the best backend for the given operations.
+// If ops is empty, returns the highest priority available backend.
+func SelectBackend(ops ...OperationType) (BackendType, error) {
+	return SelectBestBackend(ops, false)
+}
+
+// MustSelectBackend returns the best backend or panics on error.
+func MustSelectBackend(ops ...OperationType) BackendType {
+	b, err := SelectBackend(ops...)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+// Capabilities returns the capabilities for a specific backend.
+func Capabilities(backend BackendType) (*BackendCapabilities, error) {
+	return GetCapabilities(backend)
+}
