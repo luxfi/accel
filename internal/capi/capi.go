@@ -7,8 +7,9 @@
 package capi
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../../../../luxcpp/lux-accel/include
-#cgo LDFLAGS: -L${SRCDIR}/../../../../luxcpp/install/lib -llux_accel
+#cgo CFLAGS: -I${SRCDIR}/../../../../luxcpp/install/include
+#cgo darwin LDFLAGS: -L${SRCDIR}/../../../../luxcpp/install/lib -Wl,-rpath,${SRCDIR}/../../../../luxcpp/install/lib -llux_accel
+#cgo linux LDFLAGS: -L${SRCDIR}/../../../../luxcpp/install/lib -Wl,-rpath,${SRCDIR}/../../../../luxcpp/install/lib -llux_accel
 
 #include <lux/accel/c_api.h>
 #include <stdlib.h>

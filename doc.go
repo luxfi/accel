@@ -25,6 +25,27 @@
 //
 //	session, _ := accel.NewSessionWithBackend(accel.BackendMetal)
 //
+// # Runtime Backend Selection
+//
+// For intelligent backend selection based on required operations:
+//
+//	// Select best backend for ZK operations
+//	backend, _ := accel.SelectBackend(accel.OpNTT, accel.OpMSM)
+//	session, _ := accel.NewSessionWithBackend(backend)
+//
+//	// Query capabilities
+//	caps, _ := accel.Capabilities(accel.BackendWebGPU)
+//	if caps.Supports(accel.OpMSM) {
+//	    // Use MSM on WebGPU
+//	}
+//
+//	// Compare backends for an operation
+//	comparison, _ := accel.CompareBackends(accel.OpNTT, 10)
+//	fmt.Printf("Fastest backend for NTT: %s\n", comparison.Fastest)
+//
+//	// Print all capabilities
+//	accel.PrintCapabilities()
+//
 // # Pure Go Mode
 //
 // When built with CGO_ENABLED=0, the package compiles in pure Go mode.
