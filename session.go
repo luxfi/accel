@@ -1,160 +1,99 @@
+//go:build !cgo
+
 package accel
 
 import (
 	"context"
-	"sync"
 )
 
-// SessionOption configures session creation.
-type SessionOption func(*sessionConfig)
-
-type sessionConfig struct {
-	backend     BackendType
-	deviceIndex int
-	asyncMode   bool
+func initLibrary() error {
+	// No-op in pure Go mode - library compiles but no backends available
+	return nil
 }
 
-// WithBackend specifies the backend to use.
-func WithBackend(b BackendType) SessionOption {
-	return func(c *sessionConfig) {
-		c.backend = b
-	}
+func shutdown() {
+	// No-op
 }
 
-// WithDevice specifies the device index within the backend.
-func WithDevice(index int) SessionOption {
-	return func(c *sessionConfig) {
-		c.deviceIndex = index
-	}
+func version() string {
+	return Version + "-nocgo"
 }
 
-// WithAsync enables asynchronous operation mode.
-func WithAsync(async bool) SessionOption {
-	return func(c *sessionConfig) {
-		c.asyncMode = async
-	}
+func lastError() string {
+	return "no CGO support"
 }
 
-// Session manages a GPU acceleration context.
-// All tensor operations must use tensors created from the same session.
-// Session is safe for concurrent use.
-type Session struct {
-	mu     sync.RWMutex
-	handle sessionHandle
-	device DeviceInfo
-	closed bool
+func backendCount() int {
+	return 0
 }
 
-// DeviceInfo returns information about the session's device.
-func (s *Session) DeviceInfo() DeviceInfo {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.device
+func deviceCountForBackend(b BackendType) int {
+	return 0
 }
 
-// Backend returns the backend type for this session.
-func (s *Session) Backend() BackendType {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.device.Backend
+func availableBackends() []BackendType {
+	return nil
 }
 
-// Sync waits for all pending operations to complete.
-func (s *Session) Sync() error {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if s.closed {
-		return ErrSessionClosed
-	}
-	return s.handle.sync()
+func allDevices() []DeviceInfo {
+	return nil
 }
 
-// SyncContext waits for pending operations with context cancellation.
-func (s *Session) SyncContext(ctx context.Context) error {
-	s.mu.RLock()
-	if s.closed {
-		s.mu.RUnlock()
-		return ErrSessionClosed
-	}
-	h := s.handle
-	s.mu.RUnlock()
-
-	return h.syncContext(ctx)
+func newSession(opts ...SessionOption) (*Session, error) {
+	return nil, ErrNoBackends
 }
 
-// Close releases all session resources.
-func (s *Session) Close() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.closed {
-		return nil
-	}
-	s.closed = true
-	return s.handle.close()
+func newSessionWithBackend(backend BackendType, opts ...SessionOption) (*Session, error) {
+	return nil, ErrNoBackends
 }
 
-// IsClosed returns true if the session has been closed.
-func (s *Session) IsClosed() bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.closed
+func newSessionWithDevice(backend BackendType, deviceIndex int, opts ...SessionOption) (*Session, error) {
+	return nil, ErrNoBackends
 }
 
-// ML returns the ML operations interface.
-func (s *Session) ML() MLOps {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.handle.ml()
+// stubSessionHandle implements sessionHandle for pure Go builds.
+type stubSessionHandle struct{}
+
+func (h *stubSessionHandle) sync() error {
+	return ErrNoBackends
 }
 
-// Crypto returns the cryptographic operations interface.
-func (s *Session) Crypto() CryptoOps {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.handle.crypto()
+func (h *stubSessionHandle) syncContext(ctx context.Context) error {
+	return ErrNoBackends
 }
 
-// ZK returns the zero-knowledge proof operations interface.
-func (s *Session) ZK() ZKOps {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.handle.zk()
+func (h *stubSessionHandle) close() error {
+	return nil
 }
 
-// Lattice returns the lattice cryptography operations interface.
-func (s *Session) Lattice() LatticeOps {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.handle.lattice()
+func (h *stubSessionHandle) ml() MLOps {
+	return &stubMLOps{}
 }
 
-// FHE returns the fully homomorphic encryption operations interface.
-func (s *Session) FHE() FHEOps {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.handle.fhe()
+func (h *stubSessionHandle) crypto() CryptoOps {
+	return &stubCryptoOps{}
 }
 
-// DEX returns the decentralized exchange operations interface.
-func (s *Session) DEX() DEXOps {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.handle.dex()
+func (h *stubSessionHandle) zk() ZKOps {
+	return &stubZKOps{}
 }
 
-// sessionHandle is the internal interface implemented by CGO and pure Go.
-type sessionHandle interface {
-	sync() error
-	syncContext(ctx context.Context) error
-	close() error
-	ml() MLOps
-	crypto() CryptoOps
-	zk() ZKOps
-	lattice() LatticeOps
-	fhe() FHEOps
-	dex() DEXOps
-	createTensor(dtype DType, shape []int) (tensorHandle, error)
-	createTensorWithData(dtype DType, shape []int, data []byte) (tensorHandle, error)
+func (h *stubSessionHandle) lattice() LatticeOps {
+	return &stubLatticeOps{}
+}
+
+func (h *stubSessionHandle) fhe() FHEOps {
+	return &stubFHEOps{}
+}
+
+func (h *stubSessionHandle) dex() DEXOps {
+	return &stubDEXOps{}
+}
+
+func (h *stubSessionHandle) createTensor(dtype DType, shape []int) (tensorHandle, error) {
+	return nil, ErrNoBackends
+}
+
+func (h *stubSessionHandle) createTensorWithData(dtype DType, shape []int, data []byte) (tensorHandle, error) {
+	return nil, ErrNoBackends
 }

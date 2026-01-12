@@ -2,14 +2,37 @@
 
 // Package capi provides CGO bindings to the lux-accel C library.
 //
-// Runtime library resolution: Set DYLD_LIBRARY_PATH (macOS) or LD_LIBRARY_PATH (Linux)
-// to the directory containing liblux_accel, or install the library to a system path.
+// Library resolution order:
+//   1. System paths (/usr/local/lib, /usr/lib)
+//   2. Homebrew paths (/opt/homebrew/lib)
+//   3. Local luxcpp install (../../../luxcpp/install/lib)
+//
+// Install the library using one of:
+//   - make install-system (from lux/accel)
+//   - make build-deps && make install-system (build from luxcpp source)
+//   - scripts/fetch-luxcpp.sh accel (download pre-built)
 package capi
 
 /*
+// System and homebrew paths for headers
+#cgo CFLAGS: -I/usr/local/include -I/opt/homebrew/include
+
+// Fallback to local luxcpp install (relative to this file)
 #cgo CFLAGS: -I${SRCDIR}/../../../../luxcpp/install/include
-#cgo darwin LDFLAGS: -L${SRCDIR}/../../../../luxcpp/install/lib -Wl,-rpath,${SRCDIR}/../../../../luxcpp/install/lib -llux_accel
-#cgo linux LDFLAGS: -L${SRCDIR}/../../../../luxcpp/install/lib -Wl,-rpath,${SRCDIR}/../../../../luxcpp/install/lib -llux_accel
+
+// macOS: system paths, homebrew, and local luxcpp with rpaths
+#cgo darwin LDFLAGS: -L/usr/local/lib -L/opt/homebrew/lib
+#cgo darwin LDFLAGS: -L${SRCDIR}/../../../../luxcpp/install/lib
+#cgo darwin LDFLAGS: -Wl,-rpath,/usr/local/lib -Wl,-rpath,/opt/homebrew/lib
+#cgo darwin LDFLAGS: -Wl,-rpath,${SRCDIR}/../../../../luxcpp/install/lib
+#cgo darwin LDFLAGS: -lluxaccel
+
+// Linux: system paths and local luxcpp with rpaths
+#cgo linux LDFLAGS: -L/usr/local/lib -L/usr/lib
+#cgo linux LDFLAGS: -L${SRCDIR}/../../../../luxcpp/install/lib
+#cgo linux LDFLAGS: -Wl,-rpath,/usr/local/lib
+#cgo linux LDFLAGS: -Wl,-rpath,${SRCDIR}/../../../../luxcpp/install/lib
+#cgo linux LDFLAGS: -lluxaccel
 
 #include <lux/accel/c_api.h>
 #include <stdlib.h>
