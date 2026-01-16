@@ -1,0 +1,68 @@
+name: accel-ci
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Fetch luxcpp accel deps
+        env:
+          LUXCPP_VERSION: v0.1.0
+        run: make fetch-deps
+      - name: Install deps (no sudo)
+        env:
+          LUXCPP_VERSION: v0.1.0
+          INSTALL_PREFIX: ${{ github.workspace }}/.deps
+          SUDO: ""
+        run: make install-deps
+      - name: Test
+        env:
+          LUXCPP_VERSION: v0.1.0
+          INSTALL_PREFIX: ${{ github.workspace }}/.deps
+          LD_LIBRARY_PATH: ${{ github.workspace }}/.deps/lib
+        run: make test
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Fetch luxcpp accel deps
+        env:
+          LUXCPP_VERSION: v0.1.0
+        run: make fetch-deps
+      - name: Install deps (no sudo)
+        env:
+          LUXCPP_VERSION: v0.1.0
+          INSTALL_PREFIX: ${{ github.workspace }}/.deps
+          SUDO: ""
+        run: make install-deps
+      - name: Test
+        env:
+          LUXCPP_VERSION: v0.1.0
+          INSTALL_PREFIX: ${{ github.workspace }}/.deps
+          DYLD_LIBRARY_PATH: ${{ github.workspace }}/.deps/lib
+        run: make test
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Test (no CGO on Windows)
+        env:
+          CGO_ENABLED: 0
+        run: go test ./...
