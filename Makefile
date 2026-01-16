@@ -42,6 +42,7 @@ RELEASE_URL := https://$(LUXCPP_REPO)/releases/download/$(LUXCPP_VERSION)/$(RELE
 
 # luxcpp source location (for build-deps)
 LUXCPP_DIR ?= $(realpath ../../../luxcpp)
+SUDO ?=
 
 all: check-deps test
 
@@ -87,12 +88,12 @@ fetch-deps:
 install-deps:
 	@echo "Installing to $(INSTALL_PREFIX)..."
 	@if [ -d .deps/include ]; then \
-		sudo mkdir -p $(INSTALL_PREFIX)/include/lux/accel; \
-		sudo cp -r .deps/include/lux/accel/* $(INSTALL_PREFIX)/include/lux/accel/; \
+		$(SUDO) mkdir -p $(INSTALL_PREFIX)/include/lux/accel; \
+		$(SUDO) cp -r .deps/include/lux/accel/* $(INSTALL_PREFIX)/include/lux/accel/; \
 	fi
 	@if [ -d .deps/lib ]; then \
-		sudo mkdir -p $(INSTALL_PREFIX)/lib; \
-		sudo cp -r .deps/lib/* $(INSTALL_PREFIX)/lib/; \
+		$(SUDO) mkdir -p $(INSTALL_PREFIX)/lib; \
+		$(SUDO) cp -r .deps/lib/* $(INSTALL_PREFIX)/lib/; \
 	fi
 	@echo "Installed to $(INSTALL_PREFIX)"
 
@@ -115,10 +116,10 @@ build-deps:
 # Install from luxcpp install dir to system
 install-system:
 	@echo "Installing from $(LUXCPP_DIR)/install to $(INSTALL_PREFIX)..."
-	@sudo mkdir -p $(INSTALL_PREFIX)/include/lux/accel
-	@sudo mkdir -p $(INSTALL_PREFIX)/lib
-	@sudo cp -r $(LUXCPP_DIR)/install/include/lux/accel/* $(INSTALL_PREFIX)/include/lux/accel/
-	@sudo cp $(LUXCPP_DIR)/install/lib/liblux_accel* $(INSTALL_PREFIX)/lib/
+	@$(SUDO) mkdir -p $(INSTALL_PREFIX)/include/lux/accel
+	@$(SUDO) mkdir -p $(INSTALL_PREFIX)/lib
+	@$(SUDO) cp -r $(LUXCPP_DIR)/install/include/lux/accel/* $(INSTALL_PREFIX)/include/lux/accel/
+	@$(SUDO) cp $(LUXCPP_DIR)/install/lib/liblux_accel* $(INSTALL_PREFIX)/lib/
 	@echo "Installed to $(INSTALL_PREFIX)"
 
 # Run tests
