@@ -3,9 +3,9 @@
 // Package capi provides CGO bindings to the lux-accel C library.
 //
 // Library resolution order:
-//   1. System paths (/usr/local/lib, /usr/lib)
-//   2. Homebrew paths (/opt/homebrew/lib)
-//   3. Local luxcpp install (../../../luxcpp/install/lib)
+//  1. System paths (/usr/local/lib, /usr/lib)
+//  2. Homebrew paths (/opt/homebrew/lib)
+//  3. Local luxcpp install (../../../luxcpp/install/lib)
 //
 // Install the library using one of:
 //   - make install-system (from lux/accel)

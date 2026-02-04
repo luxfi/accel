@@ -23,7 +23,7 @@ var smallFieldParams = FieldParams{
 var goldilocksNTTParams = NTTParams{
 	N:       8,
 	Modulus: 0xFFFFFFFF00000001, // 2^64 - 2^32 + 1 (Goldilocks)
-	Root:    7,                   // Generator
+	Root:    7,                  // Generator
 }
 
 var goldilocksFieldParams = FieldParams{
