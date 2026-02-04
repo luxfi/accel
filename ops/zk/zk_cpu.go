@@ -285,8 +285,8 @@ func friFoldCPU(params FRIParams, evals []uint64, alpha uint64) ([]uint64, error
 	// For evaluations at omega^i where omega^(2n) = 1:
 	// evals[i] = f(omega^i), evals[n+i] = f(-omega^i) = f(omega^(n+i))
 	for i := 0; i < n; i++ {
-		f0 := evals[i]     // f(omega^i)
-		f1 := evals[n+i]   // f(-omega^i)
+		f0 := evals[i]   // f(omega^i)
+		f1 := evals[n+i] // f(-omega^i)
 
 		// even = (f0 + f1) / 2
 		sum := addMod(f0, f1, params.Modulus)

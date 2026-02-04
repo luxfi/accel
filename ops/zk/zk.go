@@ -13,11 +13,11 @@ import (
 
 // Errors
 var (
-	ErrInvalidInput    = errors.New("zk: invalid input")
-	ErrInvalidDegree   = errors.New("zk: invalid polynomial degree")
-	ErrInvalidModulus  = errors.New("zk: invalid modulus")
+	ErrInvalidInput      = errors.New("zk: invalid input")
+	ErrInvalidDegree     = errors.New("zk: invalid polynomial degree")
+	ErrInvalidModulus    = errors.New("zk: invalid modulus")
 	ErrDimensionMismatch = errors.New("zk: dimension mismatch")
-	ErrEmptyBatch      = errors.New("zk: empty batch")
+	ErrEmptyBatch        = errors.New("zk: empty batch")
 )
 
 // CurveType identifies the elliptic curve for MSM operations.
@@ -62,8 +62,8 @@ type CommitParams struct {
 
 // FRIParams contains parameters for FRI folding.
 type FRIParams struct {
-	Modulus    uint64 // Field modulus
-	FoldFactor uint32 // Folding factor (typically 2 or 4)
+	Modulus      uint64 // Field modulus
+	FoldFactor   uint32 // Folding factor (typically 2 or 4)
 	BlowupFactor uint32 // Reed-Solomon blowup factor
 }
 

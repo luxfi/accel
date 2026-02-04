@@ -171,13 +171,13 @@ func LoadPlugin(path string) error {
 
 // cgoSessionHandle implements sessionHandle using CGO.
 type cgoSessionHandle struct {
-	session *capi.Session
-	mlOps   *cgoMLOps
-	cryptoOps *cgoCryptoOps
-	zkOps   *cgoZKOps
+	session    *capi.Session
+	mlOps      *cgoMLOps
+	cryptoOps  *cgoCryptoOps
+	zkOps      *cgoZKOps
 	latticeOps *cgoLatticeOps
-	fheOps  *cgoFHEOps
-	dexOps  *cgoDEXOps
+	fheOps     *cgoFHEOps
+	dexOps     *cgoDEXOps
 }
 
 func newSession(opts ...SessionOption) (*Session, error) {
@@ -289,12 +289,12 @@ func (h *cgoSessionHandle) close() error {
 	return nil
 }
 
-func (h *cgoSessionHandle) ml() MLOps      { return h.mlOps }
-func (h *cgoSessionHandle) crypto() CryptoOps { return h.cryptoOps }
-func (h *cgoSessionHandle) zk() ZKOps      { return h.zkOps }
+func (h *cgoSessionHandle) ml() MLOps           { return h.mlOps }
+func (h *cgoSessionHandle) crypto() CryptoOps   { return h.cryptoOps }
+func (h *cgoSessionHandle) zk() ZKOps           { return h.zkOps }
 func (h *cgoSessionHandle) lattice() LatticeOps { return h.latticeOps }
-func (h *cgoSessionHandle) fhe() FHEOps     { return h.fheOps }
-func (h *cgoSessionHandle) dex() DEXOps     { return h.dexOps }
+func (h *cgoSessionHandle) fhe() FHEOps         { return h.fheOps }
+func (h *cgoSessionHandle) dex() DEXOps         { return h.dexOps }
 
 func (h *cgoSessionHandle) createTensor(dtype DType, shape []int) (tensorHandle, error) {
 	t, err := capi.CreateTensor(h.session, int(dtype), shape)

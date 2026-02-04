@@ -89,7 +89,7 @@ func newGoBoolBackend() *goBoolBackend {
 	}
 }
 
-func (b *goBoolBackend) Name() string { return "pure-go" }
+func (b *goBoolBackend) Name() string    { return "pure-go" }
 func (b *goBoolBackend) Available() bool { return true }
 
 func (b *goBoolBackend) GenSecretKey() (BoolSecretKey, error) {
@@ -151,8 +151,8 @@ func (b *goBoolBackend) Decrypt(sk BoolSecretKey, ct BoolCiphertext) (bool, erro
 		return false, err
 	}
 	// For simplified testing, use stored value (real impl would decode properly)
-	return gct.value, nil
 	_ = vals // In real impl: return vals[0] != 0, nil
+	return gct.value, nil
 }
 
 func (b *goBoolBackend) Not(ct BoolCiphertext) (BoolCiphertext, error) {
@@ -165,8 +165,8 @@ func (b *goBoolBackend) Not(ct BoolCiphertext) (BoolCiphertext, error) {
 	return result, nil
 }
 
-func (b *goBoolBackend) And(bsk BoolBootstrapKey, a, b BoolCiphertext) (BoolCiphertext, error) {
-	ga, gb := a.(*goBoolCiphertext), b.(*goBoolCiphertext)
+func (b *goBoolBackend) And(bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) {
+	ga, gb := a.(*goBoolCiphertext), bb.(*goBoolCiphertext)
 	result := &goBoolCiphertext{
 		ct:    ga.ct,
 		value: ga.value && gb.value,
@@ -494,13 +494,15 @@ func TestBackend_BinaryGates(t *testing.T) {
 	}
 
 	gates := []struct {
-		name     string
-		op       func(BoolBackend, BoolBootstrapKey, BoolCiphertext, BoolCiphertext) (BoolCiphertext, error)
-		tests    []gateTest
+		name  string
+		op    func(BoolBackend, BoolBootstrapKey, BoolCiphertext, BoolCiphertext) (BoolCiphertext, error)
+		tests []gateTest
 	}{
 		{
 			name: "AND",
-			op:   func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) { return b.And(bsk, a, bb) },
+			op: func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) {
+				return b.And(bsk, a, bb)
+			},
 			tests: []gateTest{
 				{false, false, false},
 				{false, true, false},
@@ -510,7 +512,9 @@ func TestBackend_BinaryGates(t *testing.T) {
 		},
 		{
 			name: "OR",
-			op:   func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) { return b.Or(bsk, a, bb) },
+			op: func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) {
+				return b.Or(bsk, a, bb)
+			},
 			tests: []gateTest{
 				{false, false, false},
 				{false, true, true},
@@ -520,7 +524,9 @@ func TestBackend_BinaryGates(t *testing.T) {
 		},
 		{
 			name: "XOR",
-			op:   func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) { return b.Xor(bsk, a, bb) },
+			op: func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) {
+				return b.Xor(bsk, a, bb)
+			},
 			tests: []gateTest{
 				{false, false, false},
 				{false, true, true},
@@ -530,7 +536,9 @@ func TestBackend_BinaryGates(t *testing.T) {
 		},
 		{
 			name: "NAND",
-			op:   func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) { return b.Nand(bsk, a, bb) },
+			op: func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) {
+				return b.Nand(bsk, a, bb)
+			},
 			tests: []gateTest{
 				{false, false, true},
 				{false, true, true},
@@ -540,7 +548,9 @@ func TestBackend_BinaryGates(t *testing.T) {
 		},
 		{
 			name: "NOR",
-			op:   func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) { return b.Nor(bsk, a, bb) },
+			op: func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) {
+				return b.Nor(bsk, a, bb)
+			},
 			tests: []gateTest{
 				{false, false, true},
 				{false, true, false},
@@ -550,7 +560,9 @@ func TestBackend_BinaryGates(t *testing.T) {
 		},
 		{
 			name: "XNOR",
-			op:   func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) { return b.Xnor(bsk, a, bb) },
+			op: func(b BoolBackend, bsk BoolBootstrapKey, a, bb BoolCiphertext) (BoolCiphertext, error) {
+				return b.Xnor(bsk, a, bb)
+			},
 			tests: []gateTest{
 				{false, false, true},
 				{false, true, false},
@@ -845,9 +857,9 @@ func newCPUArithBackend(params Params) *cpuArithBackend {
 	return &cpuArithBackend{params: params}
 }
 
-func (b *cpuArithBackend) Name() string     { return "cpu-arith" }
-func (b *cpuArithBackend) Available() bool  { return true }
-func (b *cpuArithBackend) Params() Params   { return b.params }
+func (b *cpuArithBackend) Name() string    { return "cpu-arith" }
+func (b *cpuArithBackend) Available() bool { return true }
+func (b *cpuArithBackend) Params() Params  { return b.params }
 
 func (b *cpuArithBackend) KeyGen() (*SecretKey, *PublicKey, error) {
 	return keyGenCPU(b.params)

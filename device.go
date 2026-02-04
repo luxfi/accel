@@ -19,10 +19,10 @@ type DeviceInfo struct {
 type DeviceCaps uint32
 
 const (
-	CapFP16        DeviceCaps = 1 << iota // Half-precision float support
-	CapFP64                               // Double precision support
-	CapSubgroups                          // Subgroup/warp operations
-	CapInt64Atomics                       // 64-bit atomic operations
+	CapFP16         DeviceCaps = 1 << iota // Half-precision float support
+	CapFP64                                // Double precision support
+	CapSubgroups                           // Subgroup/warp operations
+	CapInt64Atomics                        // 64-bit atomic operations
 )
 
 // Has returns true if the device has the specified capability.

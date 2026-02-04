@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	ErrInvalidInput  = errors.New("lattice: invalid input")
-	ErrInvalidDegree = errors.New("lattice: invalid polynomial degree")
+	ErrInvalidInput   = errors.New("lattice: invalid input")
+	ErrInvalidDegree  = errors.New("lattice: invalid polynomial degree")
 	ErrInvalidModulus = errors.New("lattice: invalid modulus")
 )
 

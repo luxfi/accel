@@ -14,17 +14,17 @@ import (
 type SigType uint8
 
 const (
-	SigECDSA    SigType = iota // secp256k1
-	SigEd25519                 // Ed25519
-	SigBLS                     // BLS12-381
-	SigMLDSA65                 // Post-quantum ML-DSA-65
+	SigECDSA   SigType = iota // secp256k1
+	SigEd25519                // Ed25519
+	SigBLS                    // BLS12-381
+	SigMLDSA65                // Post-quantum ML-DSA-65
 )
 
 // HashType identifies the hash algorithm.
 type HashType uint8
 
 const (
-	HashSHA256    HashType = iota
+	HashSHA256 HashType = iota
 	HashKeccak256
 	HashBlake3
 	HashPoseidon
