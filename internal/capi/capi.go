@@ -1,4 +1,4 @@
-//go:build luxaccel
+//go:build cgo
 
 // Package capi provides CGO bindings to the lux-accel C library.
 //
@@ -15,7 +15,7 @@ package capi
 
 /*
 // System and homebrew paths for headers
-#cgo CFLAGS: -I/usr/local/include -I/opt/homebrew/include
+#cgo CFLAGS: -I/usr/local/include -I/opt/homebrew/include -I${SRCDIR}/../../include
 
 // Fallback to local luxcpp install (relative to this file)
 #cgo CFLAGS: -I${SRCDIR}/../../../../luxcpp/install/include
