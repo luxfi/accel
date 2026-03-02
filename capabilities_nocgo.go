@@ -1,4 +1,4 @@
-//go:build !luxaccel
+//go:build !cgo
 
 package accel
 
