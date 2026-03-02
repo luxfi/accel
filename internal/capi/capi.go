@@ -1,4 +1,4 @@
-//go:build cgo
+//go:build luxaccel
 
 // Package capi provides CGO bindings to the lux-accel C library.
 //
