@@ -25,14 +25,14 @@ package capi
 #cgo darwin LDFLAGS: -L${SRCDIR}/../../../../luxcpp/install/lib
 #cgo darwin LDFLAGS: -Wl,-rpath,/usr/local/lib -Wl,-rpath,/opt/homebrew/lib
 #cgo darwin LDFLAGS: -Wl,-rpath,${SRCDIR}/../../../../luxcpp/install/lib
-#cgo darwin LDFLAGS: -lluxaccel
+// Real library: set CGO_LDFLAGS=-lluxaccel when libluxaccel is installed
 
 // Linux: system paths and local luxcpp with rpaths
 #cgo linux LDFLAGS: -L/usr/local/lib -L/usr/lib
 #cgo linux LDFLAGS: -L${SRCDIR}/../../../../luxcpp/install/lib
 #cgo linux LDFLAGS: -Wl,-rpath,/usr/local/lib
 #cgo linux LDFLAGS: -Wl,-rpath,${SRCDIR}/../../../../luxcpp/install/lib
-#cgo linux LDFLAGS: -lluxaccel
+// Real library: set CGO_LDFLAGS=-lluxaccel when libluxaccel is installed
 
 #include <lux/accel/c_api.h>
 #include <stdlib.h>
