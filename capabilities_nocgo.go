@@ -1,4 +1,4 @@
-//go:build \!cgo
+//go:build !cgo
 
 package accel
 
@@ -33,4 +33,3 @@ func SelectBestBackend(ops []OperationType, preferPerformance bool) (BackendType
 
 // PrintCapabilities prints backend capabilities (no-op without CGo).
 func PrintCapabilities() {}
-
