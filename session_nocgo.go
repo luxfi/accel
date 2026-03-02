@@ -1,4 +1,4 @@
-//go:build \!cgo
+//go:build !cgo
 
 package accel
 
@@ -23,4 +23,3 @@ func newSessionWithBackend(backend BackendType, opts ...SessionOption) (*Session
 func newSessionWithDevice(backend BackendType, deviceIndex int, opts ...SessionOption) (*Session, error) {
 	return nil, errNoCGo
 }
-
