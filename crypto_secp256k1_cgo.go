@@ -40,14 +40,14 @@ func CryptoSecp256k1Ecrecover(hash, r, s []byte, v byte) ([]byte, error) {
 		return nil, errors.New("accel: secp256k1 ecrecover: input length mismatch")
 	}
 	out := make([]byte, 64)
-	st := C.lux_secp256k1_ecrecover(
+	st := C.secp256k1_ecrecover(
 		(*C.uint8_t)(unsafe.Pointer(&hash[0])),
 		(*C.uint8_t)(unsafe.Pointer(&r[0])),
 		(*C.uint8_t)(unsafe.Pointer(&s[0])),
 		C.uint8_t(v),
 		(*C.uint8_t)(unsafe.Pointer(&out[0])),
 	)
-	if st != C.LUX_SECP256K1_OK {
+	if st != C.SECP256K1_OK {
 		return nil, secp256k1Err(int(st))
 	}
 	return out, nil
@@ -69,13 +69,13 @@ func CryptoSecp256k1EcrecoverBatch(inputs []byte) (pubkeys, statuses []byte, err
 	n := len(inputs) / 97
 	pubkeys = make([]byte, n*64)
 	statuses = make([]byte, n)
-	st := C.lux_secp256k1_ecrecover_batch(
+	st := C.secp256k1_ecrecover_batch(
 		(*C.uint8_t)(unsafe.Pointer(&inputs[0])),
 		C.size_t(n),
 		(*C.uint8_t)(unsafe.Pointer(&pubkeys[0])),
 		(*C.uint8_t)(unsafe.Pointer(&statuses[0])),
 	)
-	if st != C.LUX_SECP256K1_OK {
+	if st != C.SECP256K1_OK {
 		return nil, nil, secp256k1Err(int(st))
 	}
 	return pubkeys, statuses, nil
