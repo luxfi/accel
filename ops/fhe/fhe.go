@@ -2,7 +2,7 @@
 //
 // Supports BFV (exact integer arithmetic) and CKKS (approximate real arithmetic) schemes.
 // All operations use the unified accel backend selection and fallback to CPU.
-// Backend is selected at runtime via LUX_ACCEL_BACKEND env or auto-detection.
+// Backend is selected at runtime via GPU_BACKEND env or auto-detection.
 package fhe
 
 import (
