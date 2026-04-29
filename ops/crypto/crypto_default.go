@@ -16,7 +16,7 @@ func hashGPU(sess *accel.Session, hashType HashType, inputs [][]byte) ([][32]byt
 	return hashCPU(hashType, inputs)
 }
 
-func msmGPU(sess *accel.Session, curve string, scalars, points [][]byte) ([]byte, error) {
+func msmGPU(sess *accel.Session, curve Curve, scalars, points [][]byte) ([]byte, error) {
 	return msmCPU(curve, scalars, points)
 }
 
