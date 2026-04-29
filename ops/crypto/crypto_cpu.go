@@ -59,12 +59,6 @@ func hashCPU(hashType HashType, inputs [][]byte) ([][32]byte, error) {
 	return results, nil
 }
 
-func msmCPU(curve string, scalars, points [][]byte) ([]byte, error) {
-	// CPU MSM implementation - would use gnark-crypto or similar
-	// For now, placeholder
-	return nil, ErrVerifyFailed
-}
-
 func aggregateSigsCPU(sigs [][]byte) ([]byte, error) {
 	// BLS signature aggregation - would use bls12-381 library
 	return nil, nil
