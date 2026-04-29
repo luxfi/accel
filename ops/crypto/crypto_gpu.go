@@ -240,27 +240,17 @@ func hashGPU(sess *accel.Session, hashType HashType, inputs [][]byte) ([][32]byt
 	return results, nil
 }
 
-func msmGPU(sess *accel.Session, curve string, scalars, points [][]byte) ([]byte, error) {
+func msmGPU(sess *accel.Session, curve Curve, scalars, points [][]byte) ([]byte, error) {
 	n := len(scalars)
 	if n == 0 {
 		return nil, ErrInvalidInput
 	}
 
-	// Determine scalar and point sizes based on curve
-	var scalarSize, pointSize int
+	const scalarSize = 32
+	pointSize := curve.pointSize()
 	switch curve {
-	case "bn254", "alt_bn128":
-		scalarSize = 32 // 256-bit scalar
-		pointSize = 64  // Compressed G1 point
-	case "bls12-381":
-		scalarSize = 32 // 256-bit scalar
-		pointSize = 96  // G1 point (48 bytes x, 48 bytes y compressed)
-	case "bls12-377":
-		scalarSize = 32
-		pointSize = 96
-	case "pallas", "vesta":
-		scalarSize = 32
-		pointSize = 64
+	case CurveSecp256k1, CurveBN254, CurveBLS12_381, CurveBanderwagon:
+		// supported
 	default:
 		return msmCPU(curve, scalars, points)
 	}
