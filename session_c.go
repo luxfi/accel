@@ -191,7 +191,7 @@ type cgoSessionHandle struct {
 
 func newSession(opts ...SessionOption) (*Session, error) {
 	if err := initLibrary(); err != nil {
-		return nil, err
+		return nil, translateCapiError(err)
 	}
 
 	cfg := &sessionConfig{backend: BackendAuto}
@@ -213,7 +213,7 @@ func newSession(opts ...SessionOption) (*Session, error) {
 
 func newSessionWithBackend(backend BackendType, opts ...SessionOption) (*Session, error) {
 	if err := initLibrary(); err != nil {
-		return nil, err
+		return nil, translateCapiError(err)
 	}
 
 	cs, err := capi.CreateSessionWithBackend(int(backend))
@@ -226,7 +226,7 @@ func newSessionWithBackend(backend BackendType, opts ...SessionOption) (*Session
 
 func newSessionWithDevice(backend BackendType, deviceIndex int, opts ...SessionOption) (*Session, error) {
 	if err := initLibrary(); err != nil {
-		return nil, err
+		return nil, translateCapiError(err)
 	}
 
 	cs, err := capi.CreateSessionWithDevice(int(backend), deviceIndex)
