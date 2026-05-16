@@ -478,6 +478,22 @@ func DilithiumVerify(session *Session, msg, sig, pk *Tensor) (bool, error) {
 	return valid != 0, nil
 }
 
+// SLHDSASignBatch batch-signs SLH-DSA (FIPS 205 / Comet) messages.
+// mode encodes the parameter set per c_api.h: 2=SHA2-128f, 3=SHA2-192f,
+// 5=SHA2-256f, 12=SHAKE-128f, 13=SHAKE-192f, 15=SHAKE-256f.
+func SLHDSASignBatch(session *Session, mode int, msgs, sks, sigs *Tensor) error {
+	status := C.lux_slhdsa_sign_batch(session.handle, C.int(mode), msgs.handle, sks.handle, sigs.handle)
+	return statusToError(status)
+}
+
+// SLHDSAVerifyBatch batch-verifies SLH-DSA (FIPS 205 / Comet) signatures.
+// mode as for SLHDSASignBatch. The results tensor is populated with one
+// uint8 per signature (1 = valid, 0 = invalid).
+func SLHDSAVerifyBatch(session *Session, mode int, msgs, sigs, pks, results *Tensor) error {
+	status := C.lux_slhdsa_verify_batch(session.handle, C.int(mode), msgs.handle, sigs.handle, pks.handle, results.handle)
+	return statusToError(status)
+}
+
 // FHE operations
 
 // BFVEncrypt encrypts with BFV.
