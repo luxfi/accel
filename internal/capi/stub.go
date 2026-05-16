@@ -75,6 +75,8 @@ __attribute__((weak)) lux_status lux_kyber_encaps(lux_session s, lux_tensor pk, 
 __attribute__((weak)) lux_status lux_kyber_decaps(lux_session s, lux_tensor ct, lux_tensor sk, lux_tensor ss) { return LUX_NO_BACKEND; }
 __attribute__((weak)) lux_status lux_dilithium_sign(lux_session s, lux_tensor m, lux_tensor sk, lux_tensor sg) { return LUX_NO_BACKEND; }
 __attribute__((weak)) lux_status lux_dilithium_verify(lux_session s, lux_tensor m, lux_tensor sg, lux_tensor pk, int* v) { if(v)*v=0; return LUX_NO_BACKEND; }
+__attribute__((weak)) lux_status lux_slhdsa_sign_batch(lux_session s, int mode, lux_tensor m, lux_tensor sk, lux_tensor sg) { return LUX_NO_BACKEND; }
+__attribute__((weak)) lux_status lux_slhdsa_verify_batch(lux_session s, int mode, lux_tensor m, lux_tensor sg, lux_tensor pk, lux_tensor r) { return LUX_NO_BACKEND; }
 
 // FHE ops
 __attribute__((weak)) lux_status lux_bfv_encrypt(lux_session s, lux_tensor p, lux_tensor pk, lux_tensor c) { return LUX_NO_BACKEND; }
