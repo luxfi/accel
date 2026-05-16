@@ -68,6 +68,24 @@ type LatticeOps interface {
 	// results: [N] uint8 (1 = valid, 0 = invalid)
 	DilithiumVerifyBatch(msgs, sigs, pks, results *UntypedTensor) error
 
+	// SLHDSASignBatch signs a batch of messages with SLH-DSA / Comet (FIPS 205).
+	// mode encodes the parameter set:
+	//   2  = SHA2-128f, 3  = SHA2-192f, 5  = SHA2-256f
+	//   12 = SHAKE-128f, 13 = SHAKE-192f, 15 = SHAKE-256f
+	// msgs: [N, msg_width] bytes (zero-padded right)
+	// sks:  [N, sk_bytes]  bytes (per-mode: 64 / 96 / 128)
+	// sigs: [N, sig_bytes] bytes (per-mode: 17088 / 35664 / 49856 for 'f')
+	SLHDSASignBatch(mode int, msgs, sks, sigs *UntypedTensor) error
+
+	// SLHDSAVerifyBatch verifies a batch of SLH-DSA / Comet (FIPS 205)
+	// signatures. mode encoding as for SLHDSASignBatch. Results vector is
+	// dense (no early abort) so callers can audit per-signer outcomes.
+	// msgs:    [N, msg_width] bytes
+	// sigs:    [N, sig_bytes] bytes
+	// pks:     [N, pk_bytes]  bytes (per-mode: 32 / 48 / 64)
+	// results: [N] uint8 (1 = valid, 0 = invalid)
+	SLHDSAVerifyBatch(mode int, msgs, sigs, pks, results *UntypedTensor) error
+
 	// PolynomialNTT performs NTT in lattice polynomial ring.
 	// Operates on polynomials in Z_q[X]/(X^256 + 1).
 	PolynomialNTT(input, output *UntypedTensor, q uint32) error
