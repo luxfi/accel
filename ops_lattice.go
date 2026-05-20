@@ -68,7 +68,7 @@ type LatticeOps interface {
 	// results: [N] uint8 (1 = valid, 0 = invalid)
 	DilithiumVerifyBatch(msgs, sigs, pks, results *UntypedTensor) error
 
-	// SLHDSASignBatch signs a batch of messages with SLH-DSA / Comet (FIPS 205).
+	// SLHDSASignBatch signs a batch of messages with SLH-DSA / Magnetar (FIPS 205).
 	// mode encodes the parameter set:
 	//   2  = SHA2-128f, 3  = SHA2-192f, 5  = SHA2-256f
 	//   12 = SHAKE-128f, 13 = SHAKE-192f, 15 = SHAKE-256f
@@ -77,7 +77,7 @@ type LatticeOps interface {
 	// sigs: [N, sig_bytes] bytes (per-mode: 17088 / 35664 / 49856 for 'f')
 	SLHDSASignBatch(mode int, msgs, sks, sigs *UntypedTensor) error
 
-	// SLHDSAVerifyBatch verifies a batch of SLH-DSA / Comet (FIPS 205)
+	// SLHDSAVerifyBatch verifies a batch of SLH-DSA / Magnetar (FIPS 205)
 	// signatures. mode encoding as for SLHDSASignBatch. Results vector is
 	// dense (no early abort) so callers can audit per-signer outcomes.
 	// msgs:    [N, msg_width] bytes
