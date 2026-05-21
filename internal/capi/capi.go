@@ -494,6 +494,36 @@ func SLHDSAVerifyBatch(session *Session, mode int, msgs, sigs, pks, results *Ten
 	return statusToError(status)
 }
 
+// MLDSAVerifyBatch batch-verifies ML-DSA / Dilithium (FIPS 204) signatures.
+// mode encodes the parameter set: 2=ML-DSA-44, 3=ML-DSA-65, 5=ML-DSA-87.
+// The results tensor is populated with one uint8 per signature (1 = valid,
+// 0 = invalid).
+//
+// Until the lux-accel C-API exposes lux_mldsa_verify_batch (in development),
+// this returns ErrNotSupported so the Go-side dispatcher falls back to its
+// per-element verify path. The function is wired here so consumers can call
+// it before the substrate ships without breaking the build.
+func MLDSAVerifyBatch(session *Session, mode int, msgs, sigs, pks, results *Tensor) error {
+	_ = session
+	_ = mode
+	_ = msgs
+	_ = sigs
+	_ = pks
+	_ = results
+	return ErrNotSupported
+}
+
+// MLDSASignBatch batch-signs ML-DSA / Dilithium (FIPS 204) messages.
+// mode as for MLDSAVerifyBatch. See doc on MLDSAVerifyBatch for ABI status.
+func MLDSASignBatch(session *Session, mode int, msgs, sks, sigs *Tensor) error {
+	_ = session
+	_ = mode
+	_ = msgs
+	_ = sks
+	_ = sigs
+	return ErrNotSupported
+}
+
 // FHE operations
 
 // BFVEncrypt encrypts with BFV.
