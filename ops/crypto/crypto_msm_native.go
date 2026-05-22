@@ -10,30 +10,21 @@ package crypto
 // for all four wired curves (secp256k1, bn254 g1, bls12-381 g1, banderwagon).
 // The same signed-digit Bos-Coster Pippenger body backs all of them.
 //
-// Build with `-tags=lux_crypto_native` to opt in. The C library
-// libgpukit_multi_pippenger.a (and its first-party transitive deps) must be
-// linked at the standard luxcpp/crypto install prefix.
+// Build with `-tags=lux_crypto_native` to opt in. Linkage goes through the
+// lux-crypto-msm pkg-config bundle, which exposes the gpukit + secp256k1 +
+// bn254 + banderwagon + keccak CPU archives from $LUXCPP_PREFIX/lib.
+//
+//   cmake -S $HOME/work/luxcpp/crypto -B $HOME/work/luxcpp/crypto/build \
+//         -DCMAKE_INSTALL_PREFIX=$HOME/work/luxcpp/install
+//   cmake --build $HOME/work/luxcpp/crypto/build \
+//         --target secp256k1_cpu keccak_cpu bn254_cpu banderwagon_cpu \
+//                  gpukit_cpu gpukit_multi_pippenger
+//   cmake --install $HOME/work/luxcpp/crypto/build
+//
+// Then `export PKG_CONFIG_PATH=$HOME/work/luxcpp/install/lib/pkgconfig`.
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../../../../luxcpp/crypto/gpukit/include
-#cgo CFLAGS: -I${SRCDIR}/../../../../luxcpp/crypto/include
-
-#cgo darwin LDFLAGS: -L${SRCDIR}/../../../../luxcpp/crypto/build/gpukit
-#cgo darwin LDFLAGS: -L${SRCDIR}/../../../../luxcpp/crypto/build/secp256k1
-#cgo darwin LDFLAGS: -L${SRCDIR}/../../../../luxcpp/crypto/build/bn254
-#cgo darwin LDFLAGS: -L${SRCDIR}/../../../../luxcpp/crypto/build/banderwagon
-#cgo darwin LDFLAGS: -L${SRCDIR}/../../../../luxcpp/crypto/build/keccak
-
-#cgo linux LDFLAGS: -L${SRCDIR}/../../../../luxcpp/crypto/build/gpukit
-#cgo linux LDFLAGS: -L${SRCDIR}/../../../../luxcpp/crypto/build/secp256k1
-#cgo linux LDFLAGS: -L${SRCDIR}/../../../../luxcpp/crypto/build/bn254
-#cgo linux LDFLAGS: -L${SRCDIR}/../../../../luxcpp/crypto/build/banderwagon
-#cgo linux LDFLAGS: -L${SRCDIR}/../../../../luxcpp/crypto/build/keccak
-
-#cgo LDFLAGS: -lgpukit_multi_pippenger -lgpukit_cpu
-#cgo LDFLAGS: -lsecp256k1_cpu -lbn254_cpu -lbanderwagon_cpu -lkeccak_cpu
-#cgo darwin LDFLAGS: -lc++
-#cgo linux LDFLAGS: -lstdc++
+#cgo pkg-config: lux-crypto-msm
 
 #include <lux/gpukit/multi_pippenger.h>
 #include <lux/gpukit/gpukit.h>
