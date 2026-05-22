@@ -49,6 +49,25 @@
 package code
 
 /*
+// Discovery: the #cgo directives enumerate every standard install
+// prefix where libluxgpu_hqc.a + lux/gpu/hqc.h might live. The C
+// compiler silently skips -I / -L paths that don't exist, so listing
+// them all is harmless — only the prefix that actually has the
+// artefacts will contribute to the resolved build.
+//
+// For pkg-config-driven builds, set the environment up so cgo picks
+// it up before the fallback list:
+//
+//   eval "export CGO_CFLAGS=\"$(pkg-config --cflags lux-gpu)\""
+//   eval "export CGO_LDFLAGS=\"$(pkg-config --libs lux-gpu)\""
+//
+// (cgo concatenates env-var flags AFTER the #cgo directives, so the
+// env values win on the linker's first-match-wins resolution.) The
+// `code_cpu_pkgconfig.go` sibling enables an explicit `#cgo
+// pkg-config: lux-gpu` directive under the `lux_gpu_pkgconfig` build
+// tag, for callers that prefer the hard-failure mode (pkg-config
+// missing = build fails immediately) instead of the fallback chain.
+
 #cgo CFLAGS: -I/usr/local/include
 #cgo CFLAGS: -I/opt/homebrew/include
 #cgo CFLAGS: -I/opt/homebrew/opt/lux-gpu/include
