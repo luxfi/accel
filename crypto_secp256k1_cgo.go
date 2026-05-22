@@ -8,17 +8,25 @@ package accel
 
 // CGO route into luxcpp/crypto secp256k1.
 //
-// Set LUX_CRYPTO_DIR to the install prefix that contains
-//   include/lux/crypto/secp256k1.h
-//   liblux_crypto_secp256k1.a (or libcrypto.a -- the umbrella)
-//
 // Build with `-tags=lux_crypto_native` to opt in. Without the tag the
 // CryptoSecp256k1Ecrecover function returns ErrNotSupported (see the
 // non-cgo file).
+//
+// Linkage goes through the lux-crypto-secp256k1 pkg-config bundle, which
+// exposes -lsecp256k1_cpu + -lkeccak_cpu from $LUXCPP_PREFIX/lib and the
+// <lux/crypto/secp256k1.h> header from $LUXCPP_PREFIX/include. Build the
+// archives + .pc once with:
+//
+//   cmake -S $HOME/work/luxcpp/crypto -B $HOME/work/luxcpp/crypto/build \
+//         -DCMAKE_INSTALL_PREFIX=$HOME/work/luxcpp/install
+//   cmake --build $HOME/work/luxcpp/crypto/build \
+//         --target secp256k1_cpu keccak_cpu
+//   cmake --install $HOME/work/luxcpp/crypto/build
+//
+// Then `export PKG_CONFIG_PATH=$HOME/work/luxcpp/install/lib/pkgconfig`.
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../../luxcpp/crypto/include
-#cgo LDFLAGS: -L${SRCDIR}/../../luxcpp/crypto/build-canonical/secp256k1 -lsecp256k1_cpu -lc++
+#cgo pkg-config: lux-crypto-secp256k1
 #include <lux/crypto/secp256k1.h>
 */
 import "C"
