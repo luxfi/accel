@@ -136,8 +136,27 @@ CGO_ENABLED=0 go build ./...
 ### With CGO (GPU support)
 ```bash
 CGO_ENABLED=1 go build ./...
-# Requires luxcpp/gpu built and installed
+# Auto-discovers libluxgpu* via pkg-config + standard install prefixes.
+# Override the search prefix with LUX_GPU_PREFIX=/opt/custom go build ./...
 ```
+
+### Path discovery
+`accel.GPUPaths()` (or `accel.Provenance{}.GPUPaths()`) reports
+which install prefix the cgo build will resolve to. The fallback
+chain, in priority order:
+
+1. `LUX_GPU_PREFIX` env var (back-compat: `LUX_MLX_PREFIX`)
+2. `CGO_CFLAGS` / `CGO_LDFLAGS` env vars
+3. `pkg-config --cflags --libs lux-gpu`
+4. `/opt/homebrew/opt/lux-gpu/{include,lib}` — keg-only Homebrew
+5. `/usr/local/opt/lux-gpu/{include,lib}` — Intel-Mac Homebrew
+6. `/opt/homebrew/{include,lib}` — Apple-Silicon Homebrew
+7. `/usr/local/{include,lib}` — POSIX system install (cmake default)
+8. `/opt/lux/{include,lib}` — Lux canonical prefix
+9. `${SRCDIR}/../mlx/{include,build}` — in-tree dev sibling repo
+
+Missing `-I` / `-L` paths are silently skipped by the compiler/linker,
+so the build "just works" as long as ONE prefix has the artefacts.
 
 ### With accel tag (full GPU ops)
 ```bash
