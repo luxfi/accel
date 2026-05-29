@@ -1,10 +1,18 @@
-//go:build cgo
+//go:build cgo && !accel_native
 
 // Package capi stub implementations.
 // When the real libluxaccel is not installed, these weak-symbol C functions
-// provide default implementations that return LUX_NO_BACKEND.
-// When libluxaccel IS installed and linked (via CGO_LDFLAGS=-lluxaccel),
-// the strong symbols from the real library override these.
+// provide default implementations that return LUX_NO_BACKEND so the build
+// succeeds without the native library.
+//
+// The accel_native build tag REMOVES this file from the build. That makes
+// every C symbol referenced by capi.go unresolved, which forces the linker
+// to pull in libluxaccel from -lluxaccel (the directive in
+// capi_native_{linux,darwin}.go). Without this gating, modern linkers
+// (with --as-needed default) see the weak stubs resolve the symbols and
+// drop libluxaccel from the binary's DT_NEEDED — at which point
+// accel.Init() returns "no backends" because the real plugin-discovery
+// code never runs.
 package capi
 
 /*
