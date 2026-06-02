@@ -33,9 +33,10 @@ const (
 // Curve identifies the elliptic curve for MSM (multi-scalar multiplication).
 //
 // Wire encoding for MSM(curve, scalars, points):
-//   secp256k1 / bn254 g1 / banderwagon : 32-byte BE x || 32-byte BE y per point (64 bytes total)
-//   bls12_381 g1                       : 48-byte BE x || 48-byte BE y per point (96 bytes total)
-//   scalars                            : 32-byte LE canonical (all curves)
+//
+//	secp256k1 / bn254 g1 / banderwagon : 32-byte BE x || 32-byte BE y per point (64 bytes total)
+//	bls12_381 g1                       : 48-byte BE x || 48-byte BE y per point (96 bytes total)
+//	scalars                            : 32-byte LE canonical (all curves)
 //
 // Identity (point at infinity) is wire-encoded as all-zero point bytes.
 //
@@ -102,7 +103,7 @@ func Hash(hashType HashType, inputs [][]byte) ([][32]byte, error) {
 
 // MSM performs multi-scalar multiplication on the given curve.
 //
-//   result = sum_{i=0..n-1}  scalars[i] * points[i]
+//	result = sum_{i=0..n-1}  scalars[i] * points[i]
 //
 // scalars[i] is 32-byte LE canonical; points[i] is the curve's wire-encoded
 // affine form (see Curve doc). The result is the same wire format as a
