@@ -21,12 +21,12 @@ func detFill(buf []byte, seed byte) {
 // TestParams validates that the NIST-fixed sizes round-trip.
 func TestParams(t *testing.T) {
 	cases := []struct {
-		mode      Mode
-		name      string
-		pk, sk    int
-		ct, ss    int
-		sk_seed   int
-		enc_seed  int
+		mode     Mode
+		name     string
+		pk, sk   int
+		ct, ss   int
+		sk_seed  int
+		enc_seed int
 	}{
 		{HQC128, "HQC-128", 2249, 2305, 4433, 64, 112, 48},
 		{HQC192, "HQC-192", 4522, 4586, 8978, 64, 112, 48},
