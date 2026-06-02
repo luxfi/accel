@@ -17,6 +17,12 @@ package capi
 // System and homebrew paths for headers
 #cgo CFLAGS: -I/usr/local/include -I/opt/homebrew/include -I${SRCDIR}/../../include
 
+// Fallback to vendored header shipped with this module — works in any
+// fresh-clone / CI environment without luxcpp pre-installed. The vendored
+// header declares the C ABI; the stub.go file provides weak symbols so
+// builds succeed even when libluxaccel is not linked.
+#cgo CFLAGS: -I${SRCDIR}/include
+
 // Fallback to local luxcpp install (relative to this file)
 #cgo CFLAGS: -I${SRCDIR}/../../../../luxcpp/install/include
 
