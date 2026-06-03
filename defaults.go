@@ -85,3 +85,18 @@ func NTTInverse(_, _ []uint64, _ uint64) error {
 func MSM(_, _ [][]byte) ([]byte, error) {
 	return nil, ErrNotSupported
 }
+
+// MLDSAVerifyBatch returns ErrNotSupported in non-CGO builds.
+func MLDSAVerifyBatch(_ int, _, _, _ [][]byte, _ int) ([]bool, error) {
+	return nil, ErrNotSupported
+}
+
+// MLDSASignBatch returns ErrNotSupported in non-CGO builds.
+func MLDSASignBatch(_ int, _, _ [][]byte, _ int) ([][]byte, error) {
+	return nil, ErrNotSupported
+}
+
+// LatticeNTTMLDSABatch returns ErrNotSupported in non-CGO builds.
+func LatticeNTTMLDSABatch(_ [][]int32, _ bool) error {
+	return ErrNotSupported
+}
