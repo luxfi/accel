@@ -94,6 +94,41 @@ func TestNoopBehavior(t *testing.T) {
 			t.Errorf("MSM() error = %v, want ErrNotSupported or ErrBatchSizeMismatch", err)
 		}
 	})
+
+	t.Run("MLDSAVerifyBatch", func(t *testing.T) {
+		_, err := MLDSAVerifyBatch(MLDSAMode65, nil, nil, nil, 32)
+		if !errors.Is(err, ErrNotSupported) && !errors.Is(err, ErrBatchSizeMismatch) {
+			t.Errorf("MLDSAVerifyBatch() error = %v, want ErrNotSupported or ErrBatchSizeMismatch", err)
+		}
+	})
+
+	t.Run("MLDSASignBatch", func(t *testing.T) {
+		_, err := MLDSASignBatch(MLDSAMode65, nil, nil, 32)
+		if !errors.Is(err, ErrNotSupported) && !errors.Is(err, ErrBatchSizeMismatch) {
+			t.Errorf("MLDSASignBatch() error = %v, want ErrNotSupported or ErrBatchSizeMismatch", err)
+		}
+	})
+
+	t.Run("LatticeNTTMLDSABatch", func(t *testing.T) {
+		// Batch below threshold must return ErrNotSupported so callers
+		// route to the per-poly CPU oracle.
+		small := make([][]int32, 1)
+		small[0] = make([]int32, MLDSANTTPolyLen)
+		err := LatticeNTTMLDSABatch(small, false)
+		if !errors.Is(err, ErrNotSupported) {
+			t.Errorf("LatticeNTTMLDSABatch(batch=1) error = %v, want ErrNotSupported", err)
+		}
+	})
+
+	t.Run("LatticeNTTMLDSABatch_ShapeMismatch", func(t *testing.T) {
+		// Any poly with the wrong length must be rejected before the
+		// GPU dispatch decision is made.
+		bad := [][]int32{make([]int32, 100)}
+		err := LatticeNTTMLDSABatch(bad, false)
+		if !errors.Is(err, ErrShapeMismatch) {
+			t.Errorf("LatticeNTTMLDSABatch(bad shape) error = %v, want ErrShapeMismatch", err)
+		}
+	})
 }
 
 func TestConstants(t *testing.T) {
@@ -109,5 +144,22 @@ func TestConstants(t *testing.T) {
 	}
 	if DilithiumPublicKeySize <= 0 {
 		t.Error("DilithiumPublicKeySize should be positive")
+	}
+
+	// FIPS 204 widths must be set per NIST table.
+	if MLDSA44PublicKeySize != 1312 || MLDSA44SignatureSize != 2420 {
+		t.Errorf("ML-DSA-44 widths wrong: pk=%d sig=%d", MLDSA44PublicKeySize, MLDSA44SignatureSize)
+	}
+	if MLDSA65PublicKeySize != 1952 || MLDSA65SignatureSize != 3309 {
+		t.Errorf("ML-DSA-65 widths wrong: pk=%d sig=%d", MLDSA65PublicKeySize, MLDSA65SignatureSize)
+	}
+	if MLDSA87PublicKeySize != 2592 || MLDSA87SignatureSize != 4627 {
+		t.Errorf("ML-DSA-87 widths wrong: pk=%d sig=%d", MLDSA87PublicKeySize, MLDSA87SignatureSize)
+	}
+	if MLDSANTTPolyLen != 256 {
+		t.Errorf("MLDSANTTPolyLen = %d, want 256", MLDSANTTPolyLen)
+	}
+	if MLDSABatchThreshold <= 0 {
+		t.Error("MLDSABatchThreshold should be positive")
 	}
 }
