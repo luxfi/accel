@@ -265,6 +265,10 @@ func (o *cgoLatticeOps) PolynomialAdd(a, b, c *UntypedTensor, q uint32) error {
 	return ErrNotSupported
 }
 
+func (o *cgoLatticeOps) LatticeNTTMLDSABatch(polys *UntypedTensor, inverse bool) error {
+	return capi.LatticeNTTMLDSABatch(o.session, getCAPITensor(polys), inverse)
+}
+
 // cgoFHEOps implements FHEOps using CGO.
 type cgoFHEOps struct {
 	session *capi.Session
