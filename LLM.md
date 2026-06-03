@@ -75,6 +75,19 @@ lux/accel/
 - Kyber encapsulation/decapsulation
 - Dilithium signing/verification
 - Polynomial NTT/iNTT
+- ML-DSA batched verify / sign (FIPS 204; modes 2/3/5 = ML-DSA-44/65/87) —
+  routes through `LatticeOps.MLDSAVerifyBatch` / `MLDSASignBatch` (C ABI:
+  `lux_mldsa_verify_batch`, `lux_mldsa_sign_batch`). Stubs return
+  LUX_NO_BACKEND when libluxaccel has no impl; Go-side callers (Pulsar)
+  fall back to per-element CPU verify.
+- `LatticeNTTMLDSABatch` — in-place forward / inverse NTT over
+  Z_q[X]/(X^256+1), q=8380417 (ML-DSA prime), batched across N polynomials.
+  C ABI `lux_lattice_ntt_mldsa_batch`. CPU oracle in
+  `ops/lattice/mldsa_ntt.go` is byte-equal to PQCLEAN_MLDSA65_CLEAN_ntt
+  (the same body GPU plugins ship under lux-private/gpu-kernels/ops/
+  lattice/ntt_mldsa/). `accel.MLDSABatchThreshold = 8` — below this the
+  Go top-level dispatch returns ErrNotSupported so consumers route to
+  the per-poly CPU path.
 
 ### DEX (`ops/dex`)
 - Constant product swaps
