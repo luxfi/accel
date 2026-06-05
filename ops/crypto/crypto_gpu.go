@@ -3,6 +3,8 @@
 package crypto
 
 import (
+	"errors"
+
 	"github.com/luxfi/accel"
 )
 
@@ -120,26 +122,43 @@ func batchVerifyGPU(sess *accel.Session, sigType SigType, sigs, msgs, pubkeys []
 			resultTensor.Untyped(),
 		)
 	case SigMLDSA65:
-		// ML-DSA uses lattice operations
-		latticeOps := sess.Lattice()
-		// Verify using Dilithium (ML-DSA is based on Dilithium)
-		valid, verifyErr := latticeOps.DilithiumVerify(
+		// Red CRITICAL #177: real per-element batch dispatch via the
+		// FIPS 204 batch entry LatticeOps.MLDSAVerifyBatch. The prior
+		// code called the single-sig DilithiumVerify ONCE for the
+		// whole batch and broadcasted the single boolean to every
+		// output position — pure consensus-split fuel. A batch of
+		// [valid, INVALID, valid] returned [true, true, true] (or
+		// [false, false, false] if the single dispatch happened to
+		// short-circuit on the malformed entry), shipping wrong
+		// verdicts into the EVM precompile output (mldsa/contract.go:
+		// 339) for any GPU-accelerated validator. CPU-only validators
+		// (batchVerifyCPU computes per-element verdicts) would see
+		// [true, false, true]. Verdict asymmetry across the validator
+		// set = consensus split on the EVM precompile path.
+		//
+		// MLDSAVerifyBatch writes per-element verdicts into the
+		// shared resultTensor[n] uint8 — same shape as the
+		// ECDSA/Ed25519/BLS cases above, so the unified Sync + ToSlice
+		// + bytes→bool conversion below handles MLDSA identically.
+		//
+		// Honor the Red M-1 / CRITICAL #176 propagation policy:
+		// ErrInvalidArgument from the C ABI is a HARD error —
+		// propagate it so the precompile fails closed. Silent CPU
+		// fallback here would let CPU-only validators accept input
+		// the GPU plugin already declared malformed → asymmetric
+		// verdicts → consensus split. Other accel errors
+		// (NotSupported, OutOfMemory, KernelFailed) are recoverable;
+		// fall back to CPU per the existing pattern.
+		err = sess.Lattice().MLDSAVerifyBatch(
+			accel.MLDSAMode65,
 			msgTensor.Untyped(),
 			sigTensor.Untyped(),
 			pkTensor.Untyped(),
+			resultTensor.Untyped(),
 		)
-		if verifyErr != nil {
-			return batchVerifyCPU(sigType, sigs, msgs, pubkeys)
+		if err != nil && errors.Is(err, accel.ErrInvalidArgument) {
+			return nil, err
 		}
-		// For batch, we need to verify each individually
-		// This is a limitation - batch API returns single bool
-		results := make([]bool, n)
-		if valid {
-			for i := range results {
-				results[i] = true
-			}
-		}
-		return results, nil
 	}
 
 	if err != nil {
