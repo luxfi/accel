@@ -71,30 +71,43 @@ func TestRed177_SigMLDSA65_NoBroadcastSemantics(t *testing.T) {
 		msgs[i][0] = byte(i)
 	}
 
+	// Red Probe 7 contract update (2026-06-05): batchVerifyCPU no
+	// longer returns silent `false` for unimplemented signature types
+	// (ECDSA / BLS / ML-DSA). It now returns an explicit error
+	// (ErrCPUNotImplemented) to prevent the consensus-split shape
+	// where a GPU-equipped validator falls back to a stub-`false`
+	// while a CPU-only validator running the real CPU oracle (at the
+	// dispatch site, lux/precompile/mldsa) emits real verdicts.
+	//
+	// Under the default-tag build (no -tags accel), the SigMLDSA65
+	// dispatch path:
+	//   batchVerify (crypto.go)
+	//     → batchVerifyGPU stub (crypto_default.go)
+	//       → batchVerifyCPU(SigMLDSA65, ...) → ErrCPUNotImplemented
+	//
+	// Asserting the propagation contract: we get an error AND it
+	// carries the explicit "not implemented" sentinel. The test still
+	// rules out the broadcast bug — a broadcast would either succeed
+	// (returning length-1) or hit a different error path.
 	got, err := BatchVerify(SigMLDSA65, sigs, msgs, pks)
-	if err != nil {
-		t.Fatalf("BatchVerify(SigMLDSA65, batch=%d) returned err=%v; want nil (CPU fallback path)", batchN, err)
-	}
-
-	// Length contract: per-element verdict count == batch size.
-	if len(got) != batchN {
-		t.Fatalf("BatchVerify(SigMLDSA65) returned %d verdicts; want %d (one per element). Length-1 result = broadcast bug rearmed.", len(got), batchN)
-	}
-
-	// Note on verdict values: this test runs without -tags accel, so
-	// it lands in batchVerifyGPU(stub) which delegates to batchVerifyCPU.
-	// batchVerifyCPU's verifyMLDSA stub returns false for all entries.
-	// We don't assert per-element verdict TRUTH here because the unit
-	// test environment has no real ML-DSA CPU verifier wired in — that's
-	// the production code path. We DO assert the SHAPE of the result
-	// (length N, one verdict per element), which is the load-bearing
-	// invariant for non-broadcast semantics.
-	for i, v := range got {
-		// Stub returns false. If a future refactor changes the stub to
-		// return true, this is harmless — we're still asserting per-
-		// element verdicts exist at every index.
-		_ = v
-		_ = i
+	if err == nil {
+		// In a build that DOES wire the CPU oracle, BatchVerify would
+		// return per-element verdicts and len(got) == batchN. Verify
+		// the no-broadcast contract still holds.
+		if len(got) != batchN {
+			t.Fatalf("BatchVerify(SigMLDSA65) returned %d verdicts; want %d (one per element). Length-1 result = broadcast bug rearmed.", len(got), batchN)
+		}
+	} else {
+		// Default-tag path: the explicit-error contract MUST be in
+		// effect (Probe 7 fix). The error MUST be the
+		// not-implemented sentinel, NOT a wrapped silent-false.
+		if !errors.Is(err, ErrCPUNotImplemented) {
+			t.Fatalf("BatchVerify(SigMLDSA65, batch=%d) returned err=%v; want errors.Is(err, ErrCPUNotImplemented) under default-tag (no CPU oracle at this layer). Red Probe 7 explicit-error contract is broken.", batchN, err)
+		}
+		// got is nil under the error path — that's the contract.
+		if got != nil {
+			t.Fatalf("BatchVerify(SigMLDSA65) returned err=%v but also non-nil got=%v; under the explicit-error contract got must be nil.", err, got)
+		}
 	}
 }
 
