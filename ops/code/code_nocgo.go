@@ -1,18 +1,19 @@
 // Copyright (C) 2024-2026, Lux Industries Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-//go:build !cgo
+//go:build !cgo || !lux_hqc_native
 
-// Pure-Go (no-cgo) stub for the CPU path. HQC requires the PQClean C
-// reference; without cgo we can only fail cleanly. Callers must use
-// `GOWORK=on` and a host with a C toolchain (the canonical build
-// posture for every Lux Go module that touches PQ crypto).
+// Pure-Go stub for the CPU path, used whenever native HQC is NOT linked
+// in — i.e. the DEFAULT build (cgo without `-tags=lux_hqc_native`) and
+// any no-cgo build. HQC requires the PQClean C reference (or a runtime
+// backend); without the native link we fail cleanly rather than drag a
+// luxcpp static-lib dependency into every build. Opt in with
+// `-tags=lux_hqc_native` (see code_cpu.go) to link libluxgpu_hqc.
 
 package code
 
-import "errors"
-
-var errNoCgo = errors.New("code: HQC operations require cgo (build with CGO_ENABLED=1)")
+// All entry points return ErrNativeHQCUnavailable (defined in code.go):
+// native HQC is not linked in this build. Opt in with -tags=lux_hqc_native.
 
 func hqcKeypairCPU(mode Mode, pks, sks, seeds []byte, count int) error {
 	_ = mode
@@ -20,7 +21,7 @@ func hqcKeypairCPU(mode Mode, pks, sks, seeds []byte, count int) error {
 	_ = sks
 	_ = seeds
 	_ = count
-	return errNoCgo
+	return ErrNativeHQCUnavailable
 }
 
 func hqcEncapsCPU(mode Mode, cts, sss, pks, seeds []byte, count int) error {
@@ -30,7 +31,7 @@ func hqcEncapsCPU(mode Mode, cts, sss, pks, seeds []byte, count int) error {
 	_ = pks
 	_ = seeds
 	_ = count
-	return errNoCgo
+	return ErrNativeHQCUnavailable
 }
 
 func hqcDecapsCPU(mode Mode, sss, cts, sks []byte, count int) error {
@@ -39,7 +40,7 @@ func hqcDecapsCPU(mode Mode, sss, cts, sks []byte, count int) error {
 	_ = cts
 	_ = sks
 	_ = count
-	return errNoCgo
+	return ErrNativeHQCUnavailable
 }
 
 func gf2PolymulCPU(mode Mode, c, a, b []uint64, count int) error {
@@ -48,7 +49,7 @@ func gf2PolymulCPU(mode Mode, c, a, b []uint64, count int) error {
 	_ = a
 	_ = b
 	_ = count
-	return errNoCgo
+	return ErrNativeHQCUnavailable
 }
 
 func rsDecodeCPU(mode Mode, msgs, cdws []byte, count int) error {
@@ -56,5 +57,5 @@ func rsDecodeCPU(mode Mode, msgs, cdws []byte, count int) error {
 	_ = msgs
 	_ = cdws
 	_ = count
-	return errNoCgo
+	return ErrNativeHQCUnavailable
 }

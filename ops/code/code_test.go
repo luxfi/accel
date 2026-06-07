@@ -6,6 +6,7 @@ package code
 import (
 	"bytes"
 	"crypto/rand"
+	"errors"
 	"testing"
 )
 
@@ -47,6 +48,7 @@ func TestParams(t *testing.T) {
 // TestRoundTripSingle: keygen -> encap -> decap, verify the shared
 // secret matches. Runs for all three parameter sets.
 func TestRoundTripSingle(t *testing.T) {
+	requireNativeHQC(t)
 	modes := []struct {
 		mode Mode
 		name string
@@ -96,6 +98,7 @@ func TestRoundTripSingle(t *testing.T) {
 // is load-bearing for the on-chain HQC precompile (validators must
 // reach consensus on encapsulation outputs).
 func TestDeterminism(t *testing.T) {
+	requireNativeHQC(t)
 	for _, mode := range []Mode{HQC128, HQC192, HQC256} {
 		p := ParamsFor(mode)
 		seedKG := make([]byte, p.SeedKeypair)
@@ -131,6 +134,7 @@ func TestDeterminism(t *testing.T) {
 // output vs N sequential single-op calls. Verifies the TLS seed
 // isolation inside the parallel C++ kernel.
 func TestBatchParity(t *testing.T) {
+	requireNativeHQC(t)
 	const N = 16
 	for _, mode := range []Mode{HQC128, HQC192, HQC256} {
 		p := ParamsFor(mode)
@@ -210,6 +214,7 @@ func TestBatchParity(t *testing.T) {
 // (but valid) shared secret. The KEM does NOT error on tampering;
 // the caller distinguishes by comparing secrets.
 func TestImplicitRejection(t *testing.T) {
+	requireNativeHQC(t)
 	mode := HQC128
 	p := ParamsFor(mode)
 
@@ -243,6 +248,7 @@ func TestImplicitRejection(t *testing.T) {
 // TestGF2PolymulSanity: zero polynomial multiplied with anything is
 // zero; the kernel is commutative.
 func TestGF2PolymulSanity(t *testing.T) {
+	requireNativeHQC(t)
 	for _, mode := range []Mode{HQC128, HQC192, HQC256} {
 		vecN, err := vecNSize64(mode)
 		if err != nil {
@@ -348,5 +354,17 @@ func benchmarkEncaps(b *testing.B, mode Mode, batchN int) {
 		if err := HQCEncapsBatch(mode, cts, sss, pks, seedsEnc, batchN); err != nil {
 			b.Fatal(err)
 		}
+	}
+}
+
+// requireNativeHQC skips a test when native HQC is not linked into the
+// build (the default posture). HQC has no pure-Go implementation; build
+// with -tags=lux_hqc_native to exercise these tests against libluxgpu_hqc.
+func requireNativeHQC(t *testing.T) {
+	t.Helper()
+	p := ParamsFor(HQC128)
+	err := HQCKeypairBatch(HQC128, make([]byte, p.PublicKey), make([]byte, p.SecretKey), make([]byte, p.SeedKeypair), 1)
+	if errors.Is(err, ErrNativeHQCUnavailable) {
+		t.Skip("native HQC not linked; build with -tags=lux_hqc_native")
 	}
 }
