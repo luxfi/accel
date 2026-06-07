@@ -1,7 +1,7 @@
 // Copyright (C) 2024-2026, Lux Industries Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-//go:build cgo && !hqc_pqclean && lux_hqc_native
+//go:build cgo && !hqc_pqclean
 
 // Standalone `randombytes` shim for the accel/ops/code binding.
 //

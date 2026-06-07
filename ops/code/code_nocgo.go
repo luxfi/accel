@@ -1,19 +1,19 @@
 // Copyright (C) 2024-2026, Lux Industries Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-//go:build !cgo || !lux_hqc_native
+//go:build !cgo
 
-// Pure-Go stub for the CPU path, used whenever native HQC is NOT linked
-// in — i.e. the DEFAULT build (cgo without `-tags=lux_hqc_native`) and
-// any no-cgo build. HQC requires the PQClean C reference (or a runtime
-// backend); without the native link we fail cleanly rather than drag a
-// luxcpp static-lib dependency into every build. Opt in with
-// `-tags=lux_hqc_native` (see code_cpu.go) to link libluxgpu_hqc.
+// Pure-Go stub for the CPU path, used only in no-cgo builds
+// (CGO_ENABLED=0). The default build (cgo) links the native HQC
+// reference via code_cpu.go; this stub exists solely so the package
+// still compiles when cgo is disabled, returning a clean error rather
+// than dragging the luxcpp static-lib dependency into a pure-Go build.
 
 package code
 
 // All entry points return ErrNativeHQCUnavailable (defined in code.go):
-// native HQC is not linked in this build. Opt in with -tags=lux_hqc_native.
+// native HQC is not linked in a no-cgo build. Build with cgo (the
+// default) to link libluxgpu_hqc.
 
 func hqcKeypairCPU(mode Mode, pks, sks, seeds []byte, count int) error {
 	_ = mode
