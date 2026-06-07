@@ -1,7 +1,7 @@
 // Copyright (C) 2024-2026, Lux Industries Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-//go:build cgo && lux_gpu_pkgconfig
+//go:build cgo && lux_gpu_pkgconfig && lux_hqc_native
 
 // Optional pkg-config-driven link surface for the lux-gpu substrate.
 // Enable with `-tags=lux_gpu_pkgconfig` when you want a hard failure
