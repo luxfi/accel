@@ -3,11 +3,11 @@
 
 //go:build cgo && lux_gpu_pkgconfig
 
-// Optional pkg-config-driven link surface for the lux-gpu substrate.
+// Optional pkg-config-driven link surface for the luxgpu substrate.
 // Enable with `-tags=lux_gpu_pkgconfig` when you want a hard failure
-// if `pkg-config lux-gpu` doesn't resolve, instead of falling back to
+// if `pkg-config luxgpu` doesn't resolve, instead of falling back to
 // the multi-prefix probe in code_cpu.go. Mostly useful in CI / build
-// systems that have already installed lux-gpu via `cmake --install`
+// systems that have already installed luxgpu via `cmake --install`
 // and want to assert the install is wired up.
 //
 // The default build (no tag) still works without pkg-config — it
@@ -21,6 +21,6 @@
 package code
 
 /*
-#cgo pkg-config: lux-gpu
+#cgo pkg-config: luxgpu
 */
 import "C"

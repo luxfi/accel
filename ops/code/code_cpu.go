@@ -6,8 +6,8 @@
 // CPU reference implementation for code-based crypto. Links directly
 // against the canonical luxgpu_hqc static library (built by luxfi/mlx,
 // aka luxcpp/gpu). This is the DEFAULT cgo build — no build tag is
-// required: install lux-gpu (cmake --install, or the homebrew keg at
-// /opt/homebrew/opt/lux-gpu) and a plain `go build` links it. Only a
+// required: install luxgpu (cmake --install, or the homebrew keg at
+// /opt/homebrew/opt/luxgpu) and a plain `go build` links it. Only a
 // no-cgo build (CGO_ENABLED=0, code_nocgo.go) skips the native link and
 // returns ErrNativeHQCUnavailable. This file is the byte-equal oracle
 // for every backend, including the GPU dispatch.
@@ -30,8 +30,8 @@
 //      e.g. LUX_GPU_PREFIX=/opt/custom pkg-config-style flags
 //   2. /usr/local/{include,lib}             — POSIX system install
 //   3. /opt/homebrew/{include,lib}          — Homebrew on Apple Silicon
-//   4. /opt/homebrew/opt/lux-gpu/{...}      — Homebrew keg-only install
-//   5. /usr/local/opt/lux-gpu/{...}         — Homebrew on Intel Mac
+//   4. /opt/homebrew/opt/luxgpu/{...}       — Homebrew keg-only install
+//   5. /usr/local/opt/luxgpu/{...}          — Homebrew on Intel Mac
 //   6. /opt/lux/{include,lib}               — Lux canonical prefix
 //   7. ${SRCDIR}/../../../mlx/{include,build} — in-tree dev fallback
 //      (works only when the consuming module is in a workspace next
@@ -62,27 +62,27 @@ package code
 // For pkg-config-driven builds, set the environment up so cgo picks
 // it up before the fallback list:
 //
-//   eval "export CGO_CFLAGS=\"$(pkg-config --cflags lux-gpu)\""
-//   eval "export CGO_LDFLAGS=\"$(pkg-config --libs lux-gpu)\""
+//   eval "export CGO_CFLAGS=\"$(pkg-config --cflags luxgpu)\""
+//   eval "export CGO_LDFLAGS=\"$(pkg-config --libs luxgpu)\""
 //
 // (cgo concatenates env-var flags AFTER the #cgo directives, so the
 // env values win on the linker's first-match-wins resolution.) The
 // `code_cpu_pkgconfig.go` sibling enables an explicit `#cgo
-// pkg-config: lux-gpu` directive under the `lux_gpu_pkgconfig` build
+// pkg-config: luxgpu` directive under the `lux_gpu_pkgconfig` build
 // tag, for callers that prefer the hard-failure mode (pkg-config
 // missing = build fails immediately) instead of the fallback chain.
 
 #cgo CFLAGS: -I/usr/local/include
 #cgo CFLAGS: -I/opt/homebrew/include
-#cgo CFLAGS: -I/opt/homebrew/opt/lux-gpu/include
-#cgo CFLAGS: -I/usr/local/opt/lux-gpu/include
+#cgo CFLAGS: -I/opt/homebrew/opt/luxgpu/include
+#cgo CFLAGS: -I/usr/local/opt/luxgpu/include
 #cgo CFLAGS: -I/opt/lux/include
 #cgo CFLAGS: -I${SRCDIR}/../../../mlx/include
 
 #cgo darwin LDFLAGS: -L/usr/local/lib
 #cgo darwin LDFLAGS: -L/opt/homebrew/lib
-#cgo darwin LDFLAGS: -L/opt/homebrew/opt/lux-gpu/lib
-#cgo darwin LDFLAGS: -L/usr/local/opt/lux-gpu/lib
+#cgo darwin LDFLAGS: -L/opt/homebrew/opt/luxgpu/lib
+#cgo darwin LDFLAGS: -L/usr/local/opt/luxgpu/lib
 #cgo darwin LDFLAGS: -L/opt/lux/lib
 #cgo darwin LDFLAGS: -L${SRCDIR}/../../../mlx/build
 #cgo darwin LDFLAGS: -lluxgpu_hqc -lc++ -framework Security

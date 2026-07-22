@@ -172,8 +172,8 @@ Search list compiled into `code_cpu.go` (in compiler/linker order):
    first-match-wins resolution.
 2. `/usr/local/{include,lib}` — POSIX system install (cmake default).
 3. `/opt/homebrew/{include,lib}` — Homebrew on Apple Silicon.
-4. `/opt/homebrew/opt/lux-gpu/{include,lib}` — Homebrew keg-only install.
-5. `/usr/local/opt/lux-gpu/{include,lib}` — Homebrew on Intel Mac.
+4. `/opt/homebrew/opt/luxgpu/{include,lib}` — Homebrew keg-only install.
+5. `/usr/local/opt/luxgpu/{include,lib}` — Homebrew on Intel Mac.
 6. `/opt/lux/{include,lib}` — Lux canonical prefix.
 7. `${SRCDIR}/../../../mlx/{include,build}` — in-tree dev fallback.
    Resolves only when accel is checked out in a workspace next to
@@ -190,9 +190,10 @@ default build directly — it is honored only by the runtime introspector
 ### Opt-in pkg-config mode (`-tags=lux_gpu_pkgconfig`)
 
 `ops/code/code_cpu_pkgconfig.go` (gated on `//go:build cgo && lux_gpu_pkgconfig`)
-substitutes a single `#cgo pkg-config: lux-gpu` directive for the
+substitutes a single `#cgo pkg-config: luxgpu` directive for the
 hardcoded probe. With this tag the build FAILS if `pkg-config` cannot
-resolve `lux-gpu` — there is no fallback chain.
+resolve `luxgpu` — there is no fallback chain. (`luxgpu` is the GPU
+substrate; the hyphenated `lux-gpu` package is the separate DEX matcher.)
 
 ```bash
 PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig \
@@ -200,7 +201,7 @@ PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig \
 ```
 
 This mode is intended for CI / build systems that have already
-installed lux-gpu via `cmake --install` and want to assert the
+installed luxgpu via `cmake --install` and want to assert the
 pkg-config wiring is correct.
 
 ### Runtime introspection (`accel.GPUPaths()`)
@@ -209,7 +210,7 @@ pkg-config wiring is correct.
 `PathReport` naming which install prefix would resolve on the
 current host. The introspector probes a SUPERSET of the default
 build's search list — it ALSO checks `LUX_GPU_PREFIX` and runs
-`pkg-config --cflags --libs lux-gpu` — so an env-var override
+`pkg-config --cflags --libs luxgpu` — so an env-var override
 visible to the runtime introspector may not be the same prefix the
 default build linked against. Use it as a diagnostic, not as a
 contract.
@@ -218,9 +219,9 @@ The introspector's probe order:
 
 1. `LUX_GPU_PREFIX` env var (back-compat: `LUX_MLX_PREFIX`).
 2. `CGO_CFLAGS` / `CGO_LDFLAGS` env vars at runtime.
-3. `pkg-config --cflags --libs lux-gpu` if the binary is on `$PATH`.
-4. `/opt/homebrew/opt/lux-gpu/{include,lib}` — keg-only Homebrew.
-5. `/usr/local/opt/lux-gpu/{include,lib}` — Intel-Mac Homebrew.
+3. `pkg-config --cflags --libs luxgpu` if the binary is on `$PATH`.
+4. `/opt/homebrew/opt/luxgpu/{include,lib}` — keg-only Homebrew.
+5. `/usr/local/opt/luxgpu/{include,lib}` — Intel-Mac Homebrew.
 6. `/opt/homebrew/{include,lib}` — Apple-Silicon Homebrew.
 7. `/usr/local/{include,lib}` — POSIX system install (cmake default).
 8. `/opt/lux/{include,lib}` — Lux canonical prefix.
