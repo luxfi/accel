@@ -32,17 +32,17 @@ const (
 	// variables are non-empty at the call time of GPUPaths().
 	SourceCgoEnv Source = "cgo-env"
 
-	// SourcePkgConfig: pkg-config reports a `lux-gpu` package.
-	// Detected by running `pkg-config --variable=prefix lux-gpu`.
+	// SourcePkgConfig: pkg-config reports a `luxgpu` package.
+	// Detected by running `pkg-config --variable=prefix luxgpu`.
 	SourcePkgConfig Source = "pkg-config"
 
 	// SourceHomebrewARM: /opt/homebrew (Apple Silicon).
 	SourceHomebrewARM Source = "homebrew-arm"
 
-	// SourceHomebrewKeg: /opt/homebrew/opt/lux-gpu (keg-only formula).
+	// SourceHomebrewKeg: /opt/homebrew/opt/luxgpu (keg-only formula).
 	SourceHomebrewKeg Source = "homebrew-keg"
 
-	// SourceHomebrewIntel: /usr/local/opt/lux-gpu (Intel Mac Homebrew).
+	// SourceHomebrewIntel: /usr/local/opt/luxgpu (Intel Mac Homebrew).
 	SourceHomebrewIntel Source = "homebrew-intel"
 
 	// SourceSystem: /usr/local install (canonical POSIX).
@@ -185,13 +185,13 @@ func buildCandidates() []Candidate {
 	out = append(out,
 		Candidate{
 			Source:     SourceHomebrewKeg,
-			IncludeDir: "/opt/homebrew/opt/lux-gpu/include",
-			LibDir:     "/opt/homebrew/opt/lux-gpu/lib",
+			IncludeDir: "/opt/homebrew/opt/luxgpu/include",
+			LibDir:     "/opt/homebrew/opt/luxgpu/lib",
 		},
 		Candidate{
 			Source:     SourceHomebrewIntel,
-			IncludeDir: "/usr/local/opt/lux-gpu/include",
-			LibDir:     "/usr/local/opt/lux-gpu/lib",
+			IncludeDir: "/usr/local/opt/luxgpu/include",
+			LibDir:     "/usr/local/opt/luxgpu/lib",
 		},
 		Candidate{
 			Source:     SourceHomebrewARM,
@@ -278,16 +278,16 @@ func packageSrcDir() (string, bool) {
 	return filepath.Dir(file), true
 }
 
-// pkgConfigLookup queries pkg-config for the `lux-gpu` package and
+// pkgConfigLookup queries pkg-config for the `luxgpu` package and
 // returns a Candidate with the resolved include/lib dirs. Returns a
 // zero Candidate (IncludeDir == "") when pkg-config is unavailable
-// or doesn't know about lux-gpu — callers skip such entries.
+// or doesn't know about luxgpu — callers skip such entries.
 //
 // Honours PKG_CONFIG_PATH from env, so users with non-standard
 // install prefixes (CMAKE_INSTALL_PREFIX=/foo) can extend search via
 // PKG_CONFIG_PATH=/foo/lib/pkgconfig:$PKG_CONFIG_PATH.
 func pkgConfigLookup() Candidate {
-	out, err := exec.Command("pkg-config", "--cflags", "--libs", "lux-gpu").Output()
+	out, err := exec.Command("pkg-config", "--cflags", "--libs", "luxgpu").Output()
 	if err != nil {
 		return Candidate{}
 	}
