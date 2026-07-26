@@ -15,7 +15,7 @@ of those chains run latency-sensitive cryptography on the hot path:
 - K-Chain (keyvm) — ML-KEM/ML-DSA on cross-chain hot path
 - Z-Chain (zkvm) — Groth16 verification, Poseidon hashing
 - B-Chain (bridgevm) — ECDSA batch verification of MPC signatures
-- T-Chain (thresholdvm) — FHE bootstrapping
+- T-Chain (mpcvm) — FHE bootstrapping
 - Q-Chain (quantumvm) — Dilithium signing/verification
 
 Sharing one global session means:
@@ -113,7 +113,7 @@ calls observe `ErrSessionClosed` on the next iteration.
 - One process-wide session, lazily initialized
 - Shared, no isolation, no priority, no budget
 - All existing callers (`evmgpu`, `zkvm`, `bridgevm`, `quantumvm`,
-  `thresholdvm`, `cevm`) keep working without changes
+  `mpcvm`, `cevm`) keep working without changes
 
 New code should use `NewVMSession` per VM. Migrate legacy callers when their
 ops list grows large enough to compete for GPU time with another VM.
