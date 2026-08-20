@@ -6,10 +6,6 @@ on:
     tags: [ 'v*' ]
   pull_request:
 
-env:
-  GOPRIVATE: github.com/luxfi/*
-  GONOSUMDB: github.com/luxfi/*
-
 jobs:
   build-linux:
     runs-on: lux-build-amd64
