@@ -33,11 +33,11 @@ import (
 
 // ErrNativeHQCUnavailable is returned by every HQC / code-based entry
 // point when the native implementation is not linked into the binary.
-// HQC has no pure-Go implementation: the default (cgo) build links
-// libluxgpu_hqc, but a no-cgo build (CGO_ENABLED=0) ships without it,
-// so callers in that mode must fall back to their own CPU KEM path.
-// Check with errors.Is(err, ErrNativeHQCUnavailable).
-var ErrNativeHQCUnavailable = errors.New("code: native HQC not linked (built without cgo)")
+// HQC has no pure-Go implementation: the default build (and any no-cgo
+// build) ships without it, so callers must either build with
+// `-tags=lux_hqc_native` (links libluxgpu_hqc) or fall back to their
+// own CPU KEM path. Check with errors.Is(err, ErrNativeHQCUnavailable).
+var ErrNativeHQCUnavailable = errors.New("code: native HQC not linked (build with -tags=lux_hqc_native)")
 
 // Mode selects the HQC parameter set. Identical bit pattern to the
 // C++ enum LuxHQCMode in luxfi/mlx/include/lux/gpu/hqc.h.

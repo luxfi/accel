@@ -149,17 +149,21 @@ CGO_ENABLED=0 go build ./...
 ### With CGO (GPU support)
 ```bash
 CGO_ENABLED=1 go build ./...
-# Default build links against libluxgpu_hqc.a found via a hardcoded
-# probe of standard install prefixes (see "Default build probe" below).
-# Caller can prepend extra search paths via the standard cgo env vars:
+# cgo on its own does NOT link libluxgpu_hqc: enabling cgo says a C
+# compiler exists, not that luxgpu is installed. ops/code takes the
+# stub (ErrNativeHQCUnavailable) until you opt in:
+CGO_ENABLED=1 go build -tags=lux_hqc_native ./...
+# That links libluxgpu_hqc.a, found via a hardcoded probe of standard
+# install prefixes (see "Native HQC probe" below). Caller can prepend
+# extra search paths via the standard cgo env vars:
 #   CGO_CFLAGS="-I/my/install/include" \
 #   CGO_LDFLAGS="-L/my/install/lib" \
-#   CGO_ENABLED=1 go build ./...
+#   CGO_ENABLED=1 go build -tags=lux_hqc_native ./...
 ```
 
-### Default build probe (`code_cpu.go`)
+### Native HQC probe (`code_cpu.go`, `-tags=lux_hqc_native`)
 
-The default build does NOT use pkg-config. Instead, `ops/code/code_cpu.go`
+The native build does NOT use pkg-config. Instead, `ops/code/code_cpu.go`
 declares a fixed list of `#cgo CFLAGS: -I<dir>` and `#cgo LDFLAGS: -L<dir>`
 directives covering every standard install prefix. The C compiler and
 linker silently skip any `-I` / `-L` path that doesn't exist, so the
@@ -182,7 +186,7 @@ Search list compiled into `code_cpu.go` (in compiler/linker order):
 
 To target a non-listed prefix, set the standard cgo env vars at build
 time (option 1 above). `LUX_GPU_PREFIX` is NOT consulted by the
-default build directly — it is honored only by the runtime introspector
+native build directly — it is honored only by the runtime introspector
 (`accel.GPUPaths()`) and by external build wrappers such as
 `precompile/Makefile`, which translate it into `CGO_CFLAGS` /
 `CGO_LDFLAGS` before invoking `go build`.
@@ -208,12 +212,13 @@ pkg-config wiring is correct.
 
 `accel.GPUPaths()` (or `accel.Provenance{}.GPUPaths()`) returns a
 `PathReport` naming which install prefix would resolve on the
-current host. The introspector probes a SUPERSET of the default
+current host. The introspector probes a SUPERSET of the native
 build's search list — it ALSO checks `LUX_GPU_PREFIX` and runs
 `pkg-config --cflags --libs luxgpu` — so an env-var override
 visible to the runtime introspector may not be the same prefix the
-default build linked against. Use it as a diagnostic, not as a
-contract.
+native build linked against. It reports what IS installed, which is
+independent of whether this binary was built with `lux_hqc_native`.
+Use it as a diagnostic, not as a contract.
 
 The introspector's probe order:
 

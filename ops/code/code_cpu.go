@@ -1,16 +1,18 @@
 // Copyright (C) 2024-2026, Lux Industries Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-//go:build cgo
+//go:build cgo && lux_hqc_native
 
 // CPU reference implementation for code-based crypto. Links directly
 // against the canonical luxgpu_hqc static library (built by luxfi/mlx,
-// aka luxcpp/gpu). This is the DEFAULT cgo build — no build tag is
-// required: install luxgpu (cmake --install, or the homebrew keg at
-// /opt/homebrew/opt/luxgpu) and a plain `go build` links it. Only a
-// no-cgo build (CGO_ENABLED=0, code_nocgo.go) skips the native link and
-// returns ErrNativeHQCUnavailable. This file is the byte-equal oracle
-// for every backend, including the GPU dispatch.
+// aka luxcpp/gpu). OPT-IN via `-tags=lux_hqc_native` — cgo alone says
+// a C compiler exists, not that luxgpu is installed, so the default
+// build (even with cgo) takes the stub: no static link, no luxgpu
+// install required, and HQC returns a clean "native not linked" error
+// until a runtime backend provides it. With the tag set, install
+// luxgpu (cmake --install, or the homebrew keg at
+// /opt/homebrew/opt/luxgpu) and this file becomes the byte-equal
+// oracle for every backend, including the GPU dispatch.
 //
 // The wire format and seed layout exposed by code.go matches the C
 // API exposed in luxfi/mlx/include/lux/gpu/hqc.h. Slot indexing and
