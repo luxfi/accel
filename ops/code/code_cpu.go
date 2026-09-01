@@ -91,7 +91,7 @@ package code
 #cgo !darwin LDFLAGS: -L/usr/local/lib
 #cgo !darwin LDFLAGS: -L/opt/lux/lib
 #cgo !darwin LDFLAGS: -L${SRCDIR}/../../../mlx/build
-#cgo !darwin LDFLAGS: -lluxgpu_hqc -lstdc++ -lm
+#cgo !darwin LDFLAGS: -lluxgpu_hqc -lstdc++ -lm -fopenmp
 
 #include <stdint.h>
 #include <stddef.h>
