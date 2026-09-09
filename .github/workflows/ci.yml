@@ -13,6 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
+          cache: false
           go-version-file: go.mod
       - name: Fetch luxcpp accel deps
         continue-on-error: true
@@ -44,6 +45,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
+          cache: false
           go-version-file: go.mod
       - name: Fetch luxcpp accel deps
         continue-on-error: true
@@ -75,6 +77,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
+          cache: false
           go-version-file: go.mod
       - name: Test (no CGO on Windows)
         env:
